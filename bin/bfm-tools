@@ -1,2 +1,28 @@
 #!/bin/sh
 
+# First, determine the location of this script
+if test -f $0; then
+  script_dir=$(dirname $0)
+  script_dir=$(cd $script_dir ; pwd)
+else
+  # Find ourselves in the PATH
+  for elem in $(echo PATH | sed -e 's%:% %g'); do
+    script=${elem}/$0
+    if test -f $script; then
+      script_dir=$elem
+      break
+    fi
+  done
+fi
+
+bfmtools_dir=$(dirname ${script_dir})
+
+# Check if this is a development area
+if test -d ${bfmtools_dir}/src; then
+  export PYTHONPATH=${bfmtools_dir}/src:$PYTHONPATH
+fi
+
+echo "PYTHONPATH=$PYTHONPATH"
+
+python -m bfm-tools ${@:1}
+
