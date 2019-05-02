@@ -229,9 +229,9 @@ def generate_sv_dpi_api(tasks):
                     elif ptype == "uint8_t":
                         ptype = "byte unsigned"
                     elif ptype == "int16_t":
-                        ptype = "short"
+                        ptype = "shortint"
                     elif ptype == "uint16_t":
-                        ptype = "short unsigned"
+                        ptype = "shortint unsigned"
                     elif ptype == "int32_t":
                         ptype = "int"
                     elif ptype == "uint32_t":
