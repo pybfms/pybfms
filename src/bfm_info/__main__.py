@@ -27,7 +27,8 @@ def load_modules(module_l):
         try:
             importlib.import_module(m)
         except Exception as e:
-            print("Error: failed to load module \"" + m + "\"")
+            print("Error: failed to load module \"" + m + "\": " + str(e))
+            
             exit(1)
             
 def get_language(lang):
@@ -93,6 +94,9 @@ def cmd_srcpaths(args):
     pass
 
 def cmd_filelist(args):
+    '''
+    Create a filelist from the selected BFM source files
+    '''
     add_paths(args.l)
     load_modules(args.m)
   
