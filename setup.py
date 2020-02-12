@@ -1,6 +1,17 @@
 
 import os
 from setuptools import setup
+from distutils.extension import Extension
+
+def find_source(bases):
+    ret = []
+    for base in bases:
+        for file in os.listdir(base):
+            if os.path.splitext(file)[1] in (".cpp", ".c"):
+                ret.append(os.path.join(base, file))
+            
+    print("find_source: " + str(ret))
+    return ret
 
 setup(
   name = "bfm_core",
@@ -20,5 +31,8 @@ setup(
   setup_requires=[
     'setuptools_scm',
   ],
+  ext_modules=[
+      Extension("pybfms.hdl_sim", 
+        find_source(["ext/common", "ext/hdl_sim"]))]
 )
 
