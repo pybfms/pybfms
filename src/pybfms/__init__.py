@@ -2,6 +2,7 @@
 import os
 
 import_info_l = []
+from enum import Enum, auto
 export_info_l = []
 
 def register_bfm_import_info(info):
@@ -18,3 +19,6 @@ def bfm_hdl_path(py_file, template):
         template)
 
 
+class BfmType(Enum):
+    Verilog = auto
+    SystemVerilog = auto

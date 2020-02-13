@@ -6,10 +6,13 @@
 
 #define EXTERN_C extern "C"
 
+EXTERN_C int pybfms_claim_msg(uint32_t id);
+EXTERN_C void pybfms_end_msg(uint32_t bfm_id);
+
 EXTERN_C uint32_t pybfms_register(
         const char                *inst_name,
         const char                *cls_name,
-        pybfms_notify_f            notify_f,
+        bfm_notify_f              notify_f,
         void                      *notify_data) {
 
     return Bfm::add_bfm(new Bfm(
@@ -107,8 +110,8 @@ EXTERN_C void pybfms_end_msg(uint32_t bfm_id) {
     bfm->send_inbound_msg();
 }
 
-EXTERN_C void pybfms_send_msg(
-        uint32_t                bfm_id,
+#ifdef UNDEFINED
+EXTERN_C void pybfms_send_msg(uint32_t   bfm_id,
         uint32_t                msg_id,
         uint32_t                paramc,
         pybfms_msg_param_t    *paramv) {
@@ -116,6 +119,7 @@ EXTERN_C void pybfms_send_msg(
     BfmMsg *msg = new BfmMsg(msg_id, static_cast<int32_t>(paramc), paramv);
     bfm->send_msg(msg);
 }
+#endif
 
 EXTERN_C void pybfms_set_recv_msg_f(bfm_recv_msg_f recv_msg_f) {
     Bfm::set_recv_msg_f(recv_msg_f);

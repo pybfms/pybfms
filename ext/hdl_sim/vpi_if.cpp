@@ -5,14 +5,75 @@
 #include "vpi_user.h"
 #include <stdio.h>
 #include <string>
+#ifndef _WIN32
+#include <dlfcn.h>
+#endif
+#include "Bfm.h"
+
+struct vpi_api_s {
+	void (*vpi_get_value)(vpiHandle, p_vpi_value);
+	vpiHandle (*vpi_put_value)(vpiHandle, p_vpi_value, p_vpi_time, PLI_INT32);
+	vpiHandle (*vpi_handle)(PLI_INT32, vpiHandle);
+	vpiHandle (*vpi_iterate)(PLI_INT32, vpiHandle);
+	vpiHandle (*vpi_scan)(vpiHandle);
+	PLI_INT32 (*vpi_free_object)(vpiHandle);
+	PLI_BYTE8 *(*vpi_get_str)(PLI_INT32, vpiHandle);
+	vpiHandle (*vpi_register_systf)(p_vpi_systf_data);
+};
 
 // TODO: VPI API implementation
-static void				*prv_vpi_lib = 0;
+struct vpi_api_func_s {
+	const char *name;
+	void *fptr;
+};
 
-static void *vpi_lib(void) {
-	if (!prv_vpi_lib) {
+static void *find_vpi_lib() {
+	void *vpi_lib = dlopen(0, RTLD_LAZY);
+
+	return vpi_lib;
+}
+
+static bool prv_vpi_api_tryload = false;
+static bool prv_vpi_api_loaded = false;
+static vpi_api_s prv_vpi_api;
+
+static vpi_api_func_s api_tab[] = {
+		{"vpi_get_value", &prv_vpi_api.vpi_get_value},
+		{"vpi_put_value", &prv_vpi_api.vpi_put_value},
+		{"vpi_handle", &prv_vpi_api.vpi_handle},
+		{"vpi_iterate", &prv_vpi_api.vpi_iterate},
+		{"vpi_scan", &prv_vpi_api.vpi_scan},
+		{"vpi_free_object", &prv_vpi_api.vpi_free_object},
+		{"vpi_get_str", &prv_vpi_api.vpi_get_str},
+		{"vpi_register_systf", &prv_vpi_api.vpi_register_systf},
+		{0, 0}
+};
+
+static bool load_vpi_api() {
+	if (prv_vpi_api_tryload) {
+		return prv_vpi_api_loaded;
 	}
-	return prv_vpi_lib;
+
+	// Only try to load the VPI API once
+	prv_vpi_api_tryload = true;
+
+	void *vpi_lib = find_vpi_lib();
+	if (!vpi_lib) {
+		return false;
+	}
+
+	for (uint32_t i=0; api_tab[i].name; i++) {
+		void *val = dlsym(vpi_lib, api_tab[i].name);
+		if (!val) {
+			fprintf(stdout, "Error: Failed to find symbol \"%s\" (%s)\n",
+					api_tab[i].name, dlerror());
+			return false;
+		}
+		api_tab[i].fptr = val;
+	}
+
+	prv_vpi_api_loaded = true;
+	return prv_vpi_api_loaded;
 }
 
 
@@ -27,11 +88,15 @@ static void *vpi_lib(void) {
 static void pybfms_notify(void *notify_ev) {
     s_vpi_value val;
 
+    if (!load_vpi_api()) {
+    	return;
+    }
+
     val.format = vpiIntVal;
     val.value.integer = 1;
 
     // Signal an event to cause the BFM to wake up
-    vpi_put_value((vpiHandle)notify_ev, &val, 0, vpiNoDelay);
+    prv_vpi_api.vpi_put_value((vpiHandle)notify_ev, &val, 0, vpiNoDelay);
 }
 
 /**
@@ -41,15 +106,19 @@ static void pybfms_notify(void *notify_ev) {
  * Registers a new BFM with the system
  */
 static int pybfms_register_tf(char *user_data) {
+    if (!load_vpi_api()) {
+    	return 1;
+    }
+
     // Obtain arguments
     // - cls_name  -- passed in
     // - notify_ev -- passed in
     // - inst_name -- from call scope
     std::string inst_name, cls_name;
     vpiHandle notify_ev = 0;
-    vpiHandle systf_h = vpi_handle(vpiSysTfCall, 0);
-    vpiHandle scope_h = vpi_handle(vpiScope, systf_h);
-    vpiHandle arg_it = vpi_iterate(vpiArgument, systf_h);
+    vpiHandle systf_h = prv_vpi_api.vpi_handle(vpiSysTfCall, 0);
+    vpiHandle scope_h = prv_vpi_api.vpi_handle(vpiScope, systf_h);
+    vpiHandle arg_it = prv_vpi_api.vpi_iterate(vpiArgument, systf_h);
     s_vpi_value val;
     vpiHandle arg;
     uint32_t id;
@@ -57,37 +126,36 @@ static int pybfms_register_tf(char *user_data) {
     (void)user_data;
 
     // Get the instance name from the context
-    inst_name = vpi_get_str(vpiFullName, scope_h);
+    inst_name = prv_vpi_api.vpi_get_str(vpiFullName, scope_h);
 
     // Get the Python class name
-    arg = vpi_scan(arg_it);
+    arg = prv_vpi_api.vpi_scan(arg_it);
     val.format = vpiStringVal;
-    vpi_get_value(arg, &val);
+    prv_vpi_api.vpi_get_value(arg, &val);
     cls_name = val.value.str;
 
     // Get the handle to the notify event
-    notify_ev = vpi_scan(arg_it);
+    notify_ev = prv_vpi_api.vpi_scan(arg_it);
 
-    vpi_free_object(arg_it);
+    prv_vpi_api.vpi_free_object(arg_it);
 
-    id = pybfms_register(
-            inst_name.c_str(),
-            cls_name.c_str(),
-            &pybfms_notify,
-            notify_ev
-            );
+    id = Bfm::add_bfm(new Bfm(inst_name, cls_name, &pybfms_notify, notify_ev));
 
     // Set return value
     val.format = vpiIntVal;
     val.value.integer = (int32_t)id;
-    vpi_put_value(systf_h, &val, 0, vpiNoDelay);
+    prv_vpi_api.vpi_put_value(systf_h, &val, 0, vpiNoDelay);
 
     return 0;
 }
 
 static int pybfms_claim_msg_tf(char *user_data) {
-    vpiHandle systf_h = vpi_handle(vpiSysTfCall, 0);
-    vpiHandle arg_it = vpi_iterate(vpiArgument, systf_h);
+    if (!load_vpi_api()) {
+    	return 1;
+    }
+
+    vpiHandle systf_h = prv_vpi_api.vpi_handle(vpiSysTfCall, 0);
+    vpiHandle arg_it = prv_vpi_api.vpi_iterate(vpiArgument, systf_h);
     vpiHandle arg;
     s_vpi_value val;
     uint32_t bfm_id;
@@ -96,26 +164,30 @@ static int pybfms_claim_msg_tf(char *user_data) {
     (void)user_data;
 
     // Get the BFM ID
-    arg = vpi_scan(arg_it);
+    arg = prv_vpi_api.vpi_scan(arg_it);
     val.format = vpiIntVal;
-    vpi_get_value(arg, &val);
+    prv_vpi_api.vpi_get_value(arg, &val);
     bfm_id = (uint32_t)val.value.integer;
 
-    vpi_free_object(arg_it);
+    prv_vpi_api.vpi_free_object(arg_it);
 
-    msg_id = pybfms_claim_msg(bfm_id);
+    msg_id = Bfm::get_bfms().at(bfm_id)->claim_msg();
 
     // Set return value
     val.format = vpiIntVal;
     val.value.integer = msg_id;
-    vpi_put_value(systf_h, &val, 0, vpiNoDelay);
+    prv_vpi_api.vpi_put_value(systf_h, &val, 0, vpiNoDelay);
 
     return 0;
 }
 
 static int pybfms_get_param_i32_tf(char *user_data) {
-    vpiHandle systf_h = vpi_handle(vpiSysTfCall, 0);
-    vpiHandle arg_it = vpi_iterate(vpiArgument, systf_h);
+    if (!load_vpi_api()) {
+    	return 1;
+    }
+
+    vpiHandle systf_h = prv_vpi_api.vpi_handle(vpiSysTfCall, 0);
+    vpiHandle arg_it = prv_vpi_api.vpi_iterate(vpiArgument, systf_h);
     vpiHandle arg;
     s_vpi_value val;
     uint32_t bfm_id;
@@ -124,26 +196,35 @@ static int pybfms_get_param_i32_tf(char *user_data) {
     (void)user_data;
 
     // Get the BFM ID
-    arg = vpi_scan(arg_it);
+    arg = prv_vpi_api.vpi_scan(arg_it);
     val.format = vpiIntVal;
-    vpi_get_value(arg, &val);
+    prv_vpi_api.vpi_get_value(arg, &val);
     bfm_id = (uint32_t)val.value.integer;
 
-    vpi_free_object(arg_it);
+    prv_vpi_api.vpi_free_object(arg_it);
 
-    pval = pybfms_get_si_param(bfm_id);
+    BfmMsg *msg = Bfm::get_bfms().at(bfm_id)->active_msg();
+    if (msg) {
+    	pval = msg->get_param_si();
+    } else {
+    	pval = 0;
+    }
 
     // Set return value
     val.format = vpiIntVal;
     val.value.integer = (int32_t)pval;
-    vpi_put_value(systf_h, &val, 0, vpiNoDelay);
+    prv_vpi_api.vpi_put_value(systf_h, &val, 0, vpiNoDelay);
 
     return 0;
 }
 
 static int pybfms_get_param_ui32_tf(char *user_data) {
-    vpiHandle systf_h = vpi_handle(vpiSysTfCall, 0);
-    vpiHandle arg_it = vpi_iterate(vpiArgument, systf_h);
+    if (!load_vpi_api()) {
+    	return 1;
+    }
+
+    vpiHandle systf_h = prv_vpi_api.vpi_handle(vpiSysTfCall, 0);
+    vpiHandle arg_it = prv_vpi_api.vpi_iterate(vpiArgument, systf_h);
     vpiHandle arg;
     s_vpi_value val;
     uint32_t bfm_id;
@@ -152,27 +233,36 @@ static int pybfms_get_param_ui32_tf(char *user_data) {
     (void)user_data;
 
     // Get the BFM ID
-    arg = vpi_scan(arg_it);
+    arg = prv_vpi_api.vpi_scan(arg_it);
     val.format = vpiIntVal;
-    vpi_get_value(arg, &val);
+    prv_vpi_api.vpi_get_value(arg, &val);
     bfm_id = (uint32_t)val.value.integer;
 
-    vpi_free_object(arg_it);
+    prv_vpi_api.vpi_free_object(arg_it);
 
-    pval = pybfms_get_ui_param(bfm_id);
+    BfmMsg *msg = Bfm::get_bfms().at(bfm_id)->active_msg();
+    if (msg) {
+    	pval = msg->get_param_ui();
+    } else {
+    	pval = 0;
+    }
 
     // Set return value
     val.format = vpiIntVal;
     // TODO: should really use reg?
     val.value.integer = (int32_t)pval;
-    vpi_put_value(systf_h, &val, 0, vpiNoDelay);
+    prv_vpi_api.vpi_put_value(systf_h, &val, 0, vpiNoDelay);
 
     return 0;
 }
 
 static int pybfms_begin_msg_tf(char *user_data) {
-    vpiHandle systf_h = vpi_handle(vpiSysTfCall, 0);
-    vpiHandle arg_it = vpi_iterate(vpiArgument, systf_h);
+    if (!load_vpi_api()) {
+    	return 1;
+    }
+
+    vpiHandle systf_h = prv_vpi_api.vpi_handle(vpiSysTfCall, 0);
+    vpiHandle arg_it = prv_vpi_api.vpi_iterate(vpiArgument, systf_h);
     vpiHandle arg;
     s_vpi_value val;
     uint32_t bfm_id, msg_id;
@@ -180,27 +270,31 @@ static int pybfms_begin_msg_tf(char *user_data) {
     (void)user_data;
 
     // Get the BFM ID
-    arg = vpi_scan(arg_it);
+    arg = prv_vpi_api.vpi_scan(arg_it);
     val.format = vpiIntVal;
-    vpi_get_value(arg, &val);
+    prv_vpi_api.vpi_get_value(arg, &val);
     bfm_id = (uint32_t)val.value.integer;
 
     // Get the msg ID
-    arg = vpi_scan(arg_it);
+    arg = prv_vpi_api.vpi_scan(arg_it);
     val.format = vpiIntVal;
-    vpi_get_value(arg, &val);
+    prv_vpi_api.vpi_get_value(arg, &val);
     msg_id = (uint32_t)val.value.integer;
 
-    vpi_free_object(arg_it);
+    prv_vpi_api.vpi_free_object(arg_it);
 
-    pybfms_begin_msg(bfm_id, msg_id);
+    Bfm::get_bfms().at(bfm_id)->begin_inbound_msg(msg_id);
 
     return 0;
 }
 
 static int pybfms_add_param_si_tf(char *user_data) {
-    vpiHandle systf_h = vpi_handle(vpiSysTfCall, 0);
-    vpiHandle arg_it = vpi_iterate(vpiArgument, systf_h);
+    if (!load_vpi_api()) {
+    	return 1;
+    }
+
+    vpiHandle systf_h = prv_vpi_api.vpi_handle(vpiSysTfCall, 0);
+    vpiHandle arg_it = prv_vpi_api.vpi_iterate(vpiArgument, systf_h);
     vpiHandle arg;
     s_vpi_value val;
     uint32_t bfm_id;
@@ -209,27 +303,32 @@ static int pybfms_add_param_si_tf(char *user_data) {
     (void)user_data;
 
     // Get the BFM ID
-    arg = vpi_scan(arg_it);
+    arg = prv_vpi_api.vpi_scan(arg_it);
     val.format = vpiIntVal;
-    vpi_get_value(arg, &val);
+    prv_vpi_api.vpi_get_value(arg, &val);
     bfm_id = (uint32_t)val.value.integer;
 
     // Get the parameter value
-    arg = vpi_scan(arg_it);
+    arg = prv_vpi_api.vpi_scan(arg_it);
     val.format = vpiIntVal;
-    vpi_get_value(arg, &val);
+    prv_vpi_api.vpi_get_value(arg, &val);
     pval = (uint64_t)val.value.integer;
 
-    vpi_free_object(arg_it);
+    prv_vpi_api.vpi_free_object(arg_it);
 
-    pybfms_add_ui_param(bfm_id, pval);
+    BfmMsg *msg = Bfm::get_bfms().at(bfm_id)->active_inbound_msg();
+    msg->add_param_si(pval);
 
     return 0;
 }
 
 static int pybfms_add_param_ui_tf(char *user_data) {
-    vpiHandle systf_h = vpi_handle(vpiSysTfCall, 0);
-    vpiHandle arg_it = vpi_iterate(vpiArgument, systf_h);
+    if (!load_vpi_api()) {
+    	return 1;
+    }
+
+    vpiHandle systf_h = prv_vpi_api.vpi_handle(vpiSysTfCall, 0);
+    vpiHandle arg_it = prv_vpi_api.vpi_iterate(vpiArgument, systf_h);
     vpiHandle arg;
     s_vpi_value val;
     uint32_t bfm_id;
@@ -238,27 +337,32 @@ static int pybfms_add_param_ui_tf(char *user_data) {
     (void)user_data;
 
     // Get the BFM ID
-    arg = vpi_scan(arg_it);
+    arg = prv_vpi_api.vpi_scan(arg_it);
     val.format = vpiIntVal;
-    vpi_get_value(arg, &val);
+    prv_vpi_api.vpi_get_value(arg, &val);
     bfm_id = (uint32_t)val.value.integer;
 
     // Get the parameter value
-    arg = vpi_scan(arg_it);
+    arg = prv_vpi_api.vpi_scan(arg_it);
     val.format = vpiIntVal;
-    vpi_get_value(arg, &val);
+    prv_vpi_api.vpi_get_value(arg, &val);
     pval = (uint32_t)val.value.integer;
 
-    vpi_free_object(arg_it);
+    prv_vpi_api.vpi_free_object(arg_it);
 
-    pybfms_add_ui_param(bfm_id, pval);
+    BfmMsg *msg = Bfm::get_bfms().at(bfm_id)->active_inbound_msg();
+    msg->add_param_ui(pval);
 
     return 0;
 }
 
 static int pybfms_end_msg_tf(char *user_data) {
-    vpiHandle systf_h = vpi_handle(vpiSysTfCall, 0);
-    vpiHandle arg_it = vpi_iterate(vpiArgument, systf_h);
+    if (!load_vpi_api()) {
+    	return 1;
+    }
+
+    vpiHandle systf_h = prv_vpi_api.vpi_handle(vpiSysTfCall, 0);
+    vpiHandle arg_it = prv_vpi_api.vpi_iterate(vpiArgument, systf_h);
     vpiHandle arg;
     s_vpi_value val;
     uint32_t bfm_id;
@@ -266,14 +370,15 @@ static int pybfms_end_msg_tf(char *user_data) {
     (void)user_data;
 
     // Get the BFM ID
-    arg = vpi_scan(arg_it);
+    arg = prv_vpi_api.vpi_scan(arg_it);
     val.format = vpiIntVal;
-    vpi_get_value(arg, &val);
+    prv_vpi_api.vpi_get_value(arg, &val);
     bfm_id = (uint32_t)val.value.integer;
 
-    vpi_free_object(arg_it);
+    prv_vpi_api.vpi_free_object(arg_it);
 
-    pybfms_end_msg(bfm_id);
+    Bfm *bfm = Bfm::get_bfms().at(bfm_id);
+    bfm->send_inbound_msg();
 
     return 0;
 }
@@ -290,7 +395,7 @@ static void register_bfm_tf(void) {
     tf_data.compiletf = 0;
     tf_data.sizetf = 0;
     tf_data.user_data = 0;
-    vpi_register_systf(&tf_data);
+    prv_vpi_api.vpi_register_systf(&tf_data);
 
     // pybfms_claim_msg
     tf_data.type = vpiSysFunc;
@@ -299,7 +404,7 @@ static void register_bfm_tf(void) {
     tf_data.compiletf = 0;
     tf_data.sizetf = 0;
     tf_data.user_data = 0;
-    vpi_register_systf(&tf_data);
+    prv_vpi_api.vpi_register_systf(&tf_data);
 
     // pybfms_get_param_i32
     tf_data.type = vpiSysFunc;
@@ -308,7 +413,7 @@ static void register_bfm_tf(void) {
     tf_data.compiletf = 0;
     tf_data.sizetf = 0;
     tf_data.user_data = 0;
-    vpi_register_systf(&tf_data);
+    prv_vpi_api.vpi_register_systf(&tf_data);
 
     // pybfms_get_param_ui32
     tf_data.type = vpiSysFunc;
@@ -317,7 +422,7 @@ static void register_bfm_tf(void) {
     tf_data.compiletf = 0;
     tf_data.sizetf = 0;
     tf_data.user_data = 0;
-    vpi_register_systf(&tf_data);
+    prv_vpi_api.vpi_register_systf(&tf_data);
 
     // pybfms_get_param_i64
 
@@ -330,7 +435,7 @@ static void register_bfm_tf(void) {
     tf_data.compiletf = 0;
     tf_data.sizetf = 0;
     tf_data.user_data = 0;
-    vpi_register_systf(&tf_data);
+    prv_vpi_api.vpi_register_systf(&tf_data);
 
     // pybfms_add_param_ui
     tf_data.type = vpiSysTask;
@@ -339,7 +444,7 @@ static void register_bfm_tf(void) {
     tf_data.compiletf = 0;
     tf_data.sizetf = 0;
     tf_data.user_data = 0;
-    vpi_register_systf(&tf_data);
+    prv_vpi_api.vpi_register_systf(&tf_data);
 
     // pybfms_add_param_si
     tf_data.type = vpiSysTask;
@@ -348,7 +453,7 @@ static void register_bfm_tf(void) {
     tf_data.compiletf = 0;
     tf_data.sizetf = 0;
     tf_data.user_data = 0;
-    vpi_register_systf(&tf_data);
+    prv_vpi_api.vpi_register_systf(&tf_data);
 
     // pybfms_add_param_str
 
@@ -359,7 +464,7 @@ static void register_bfm_tf(void) {
     tf_data.compiletf = 0;
     tf_data.sizetf = 0;
     tf_data.user_data = 0;
-    vpi_register_systf(&tf_data);
+    prv_vpi_api.vpi_register_systf(&tf_data);
 }
 
 void (*vlog_startup_routines[])() = {

@@ -86,10 +86,11 @@ class BfmMgr():
 
     @staticmethod
     async def init():
-        import simulator
+        import pybfms.hdl_sim
         inst = BfmMgr.inst()
         if not inst.m_initialized:
-            simulator.bfm_set_call_method(BfmMgr.call)
+            print("TODO: fetch BFMs")
+#            simulator.bfm_set_call_method(BfmMgr.call)
             BfmMgr.inst().load_bfms()
             inst.m_initialized = True
 
