@@ -24,7 +24,7 @@ struct vpi_api_s {
 // TODO: VPI API implementation
 struct vpi_api_func_s {
 	const char *name;
-	void *fptr;
+	void **fptr;
 };
 
 static void *find_vpi_lib() {
@@ -38,14 +38,14 @@ static bool prv_vpi_api_loaded = false;
 static vpi_api_s prv_vpi_api;
 
 static vpi_api_func_s api_tab[] = {
-		{"vpi_get_value", &prv_vpi_api.vpi_get_value},
-		{"vpi_put_value", &prv_vpi_api.vpi_put_value},
-		{"vpi_handle", &prv_vpi_api.vpi_handle},
-		{"vpi_iterate", &prv_vpi_api.vpi_iterate},
-		{"vpi_scan", &prv_vpi_api.vpi_scan},
-		{"vpi_free_object", &prv_vpi_api.vpi_free_object},
-		{"vpi_get_str", &prv_vpi_api.vpi_get_str},
-		{"vpi_register_systf", &prv_vpi_api.vpi_register_systf},
+		{"vpi_get_value", (void **)&prv_vpi_api.vpi_get_value},
+		{"vpi_put_value", (void **)&prv_vpi_api.vpi_put_value},
+		{"vpi_handle", (void **)&prv_vpi_api.vpi_handle},
+		{"vpi_iterate", (void **)&prv_vpi_api.vpi_iterate},
+		{"vpi_scan", (void **)&prv_vpi_api.vpi_scan},
+		{"vpi_free_object", (void **)&prv_vpi_api.vpi_free_object},
+		{"vpi_get_str", (void **)&prv_vpi_api.vpi_get_str},
+		{"vpi_register_systf", (void **)&prv_vpi_api.vpi_register_systf},
 		{0, 0}
 };
 
@@ -58,18 +58,22 @@ static bool load_vpi_api() {
 	prv_vpi_api_tryload = true;
 
 	void *vpi_lib = find_vpi_lib();
+	fprintf(stdout, "vpi_lib=%p\n", vpi_lib);
+	fflush(stdout);
 	if (!vpi_lib) {
 		return false;
 	}
 
 	for (uint32_t i=0; api_tab[i].name; i++) {
 		void *val = dlsym(vpi_lib, api_tab[i].name);
+		fprintf(stdout, "VPI: %s=%p\n", api_tab[i].name, val);
+		fflush(stdout);
 		if (!val) {
 			fprintf(stdout, "Error: Failed to find symbol \"%s\" (%s)\n",
 					api_tab[i].name, dlerror());
 			return false;
 		}
-		api_tab[i].fptr = val;
+		(*api_tab[i].fptr) = val;
 	}
 
 	prv_vpi_api_loaded = true;
@@ -387,6 +391,9 @@ static int pybfms_end_msg_tf(char *user_data) {
 static void register_bfm_tf(void) {
     s_vpi_systf_data tf_data;
 
+    if (!load_vpi_api()) {
+    	return;
+    }
 
     // pybfms_register
     tf_data.type = vpiSysFunc;

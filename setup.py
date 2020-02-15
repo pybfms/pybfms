@@ -13,6 +13,8 @@ def find_source(bases):
     print("find_source: " + str(ret))
     return ret
 
+pybfms_root = os.path.dirname(os.path.abspath(__file__))
+
 setup(
   name = "pybfms",
   packages=['pybfms'],
@@ -32,8 +34,14 @@ setup(
     'setuptools_scm',
   ],
   ext_modules=[
-      Extension("pybfms.hdl_sim", 
-        include_dirs=['ext/common', 'ext/hdl_sim'],
-        sources=find_source(["ext/common", "ext/hdl_sim"]))]
+      Extension("pybfms_hdl_sim", 
+        include_dirs=[
+            os.path.join(pybfms_root, 'ext/common'), 
+            os.path.join(pybfms_root, 'ext/hdl_sim')],
+        sources=find_source([
+            os.path.join(pybfms_root, 'ext/common'), 
+            os.path.join(pybfms_root, 'ext/hdl_sim')]
+        )
+    )]
 )
 

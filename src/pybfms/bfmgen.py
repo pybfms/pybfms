@@ -28,9 +28,9 @@ def process_template_vl(template, info):
         bfm_import_calls += "                  " + imp.T.__name__  + "(\n"
         for pi,p in enumerate(imp.signature):
             if p.ptype.s:
-                bfm_import_calls += "                      $pybfms.bfm_get_param_i32(bfm_id)"
+                bfm_import_calls += "                      $pybfms_get_param_i32(bfm_id)"
             else:
-                bfm_import_calls += "                      $pybfms.bfm_get_param_ui32(bfm_id)"
+                bfm_import_calls += "                      $pybfms_get_param_ui32(bfm_id)"
 
             if pi+1 < len(imp.signature):
                 bfm_import_calls += ","
@@ -52,14 +52,14 @@ def process_template_vl(template, info):
         else:
             bfm_export_tasks += ";\n"
         bfm_export_tasks += "    begin\n"
-        bfm_export_tasks += "        $pybfms.bfm_begin_msg(bfm_id, " + str(i) + ");\n"
+        bfm_export_tasks += "        $pybfms_begin_msg(bfm_id, " + str(i) + ");\n"
         for p in exp.signature:
             if p.ptype.s:
-                bfm_export_tasks += "        $pybfms.bfm_add_param_si(bfm_id, " + p.pname + ");\n"
+                bfm_export_tasks += "        $pybfms_add_param_si(bfm_id, " + p.pname + ");\n"
             else:
-                bfm_export_tasks += "        $pybfms.bfm_add_param_ui(bfm_id, " + p.pname + ");\n"
+                bfm_export_tasks += "        $pybfms_add_param_ui(bfm_id, " + p.pname + ");\n"
 
-        bfm_export_tasks += "        $pybfms.bfm_end_msg(bfm_id);\n"
+        bfm_export_tasks += "        $pybfms_end_msg(bfm_id);\n"
         bfm_export_tasks += "    end\n"
         bfm_export_tasks += "    endtask\n"
 
@@ -70,7 +70,7 @@ def process_template_vl(template, info):
         bfm_export_tasks=bfm_export_tasks
         )
 
-    pybfms_bfm_api_impl = """
+    pybfms_api_impl = """
     reg signed[31:0]      bfm_id;
     event                 bfm_ev;
     reg signed[31:0]      bfm_msg_id;
@@ -78,10 +78,10 @@ def process_template_vl(template, info):
 ${bfm_export_tasks}
 
     initial begin
-      bfm_id = $pybfms.bfm_register("${bfm_classname}", bfm_ev);
+      bfm_id = $pybfms_register("${bfm_classname}", bfm_ev);
 
       while (1) begin
-          bfm_msg_id = $pybfms.bfm_claim_msg(bfm_id);
+          bfm_msg_id = $pybfms_claim_msg(bfm_id);
 
           case (bfm_msg_id)
 ${bfm_import_calls}
@@ -95,7 +95,7 @@ ${bfm_import_calls}
     """
 
     param_m = {
-        "pybfms_bfm_api_impl" : Template(pybfms_bfm_api_impl).safe_substitute(impl_param_m)
+        "pybfms_api_impl" : Template(pybfms_api_impl).safe_substitute(impl_param_m)
         }
 
 
@@ -178,7 +178,7 @@ def process_template_sv(template, bfm_name, info):
         "bfm_export_tasks" : bfm_export_tasks
         }
 
-    pybfms_bfm_api_impl = """
+    pybfms_api_impl = """
     int          bfm_id;
 
     import "DPI-C" context function int pybfms.bfm_claim_msg(int bfm_id);
@@ -210,7 +210,7 @@ ${bfm_export_tasks}
     """
 
     param_m = {
-        "pybfms_bfm_api_impl" : Template(pybfms_bfm_api_impl).safe_substitute(impl_param_m)
+        "pybfms_api_impl" : Template(pybfms_api_impl).safe_substitute(impl_param_m)
         }
 
 
@@ -294,14 +294,17 @@ def bfm_generate_sv(args):
 
 def bfm_generate(args):
     """Generate BFM files required for simulation"""
+    
+    if hasattr(args, 'm') and args.m is not None:
+        bfm_load_modules(args.m)
 
     if args.o is None:
         if args.language == "vlog":
-            args.o = "pybfms.bfms.v"
+            args.o = "pybfms_bfms.v"
         elif args.language == "sv":
-            args.o = "pybfms.bfms.sv"
+            args.o = "pybfms_bfms.sv"
         elif args.language == "vhdl":
-            args.o = "pybfms.bfms.vhdl"
+            args.o = "pybfms_bfms.vhdl"
 
     if args.language == "vlog":
         bfm_generate_vl(args)

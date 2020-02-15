@@ -8,8 +8,8 @@ from pybfms.bfmgen import bfm_generate
 
 def lib(args):
     """Return the path to the VPI library"""
-    import pybfms.hdl_sim
-    print(pybfms.hdl_sim.__file__)
+    import pybfms_hdl_sim
+    print(pybfms_hdl_sim.__file__)
     
 
 def get_parser():
@@ -26,7 +26,7 @@ def get_parser():
     generate_cmd.set_defaults(func=bfm_generate)
     generate_cmd.add_argument("-m", action='append')
     generate_cmd.add_argument("-l", "--language", default="vlog")
-    generate_cmd.add_argument("-o", default=None)    
+    generate_cmd.add_argument("-o", default=None)
     
     return parser
    

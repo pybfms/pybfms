@@ -3,9 +3,14 @@ Created on Feb 11, 2020
 
 @author: ballance
 '''
-from bfm_core.bfm_type_info import BfmTypeInfo
 from pybfms.bfm_mgr import BfmMgr
+import pybfms
+from pybfms.bfm_method_info import BfmMethodInfo
+from pybfms.bfm_type_info import BfmTypeInfo
 
+# Collects information about BFM import and export tasks
+_import_info_l = []
+_export_info_l = []
 
 class bfm():
     '''
@@ -14,18 +19,15 @@ class bfm():
     def __init__(self, hdl, has_init=False):
         self.hdl = hdl
         self.has_init = has_init
+        print("bfm decorator")
 
     def __call__(self, T):
-        global import_info_l
-        global export_info_l
-
-        type_info = BfmTypeInfo(
-            T, self.hdl, 
-            import_info_l.copy(), 
-            export_info_l.copy())
+        global _import_info_l, _export_info_l
+        type_info = BfmTypeInfo(T, self.hdl, 
+            _import_info_l.copy(), _export_info_l.copy())
         BfmMgr.inst().add_type_info(T, type_info)
-        import_info_l = []
-        export_info_l = []
+        _import_info_l.clear()
+        _export_info_l.clear()
         
         return T
 
@@ -35,8 +37,10 @@ class export_task():
         self.signature = args
 
     def __call__(self, m):
-        cocotb.bfms.register_bfm_export_info(
-            cocotb.bfms.BfmMethodInfo(m, self.signature))
+        global _export_info_l
+        info = BfmMethodInfo(m, self.signature)
+        info.id = len(_export_info_l)
+        _export_info_l.append(info)
         return m
 
 class import_task():
@@ -48,10 +52,13 @@ class import_task():
         self.signature = args
 
     def __call__(self, m):
+        global _import_info_l
         info = BfmMethodInfo(m, self.signature)
-        cocotb.bfms.register_bfm_import_info(info)
-
+        info.id = len(_import_info_l)
+        _import_info_l.append(info)
+        
         def import_taskw(self, *args):
+            # TODO:
             import simulator
             arg_l = []
             for a in args:

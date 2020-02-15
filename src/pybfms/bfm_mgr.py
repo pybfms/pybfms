@@ -85,8 +85,8 @@ class BfmMgr():
             self.bfm_l.append(bfm)
 
     @staticmethod
-    async def init():
-        import pybfms.hdl_sim
+    def init():
+        import pybfms_hdl_sim
         inst = BfmMgr.inst()
         if not inst.m_initialized:
             print("TODO: fetch BFMs")
