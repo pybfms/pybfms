@@ -1,6 +1,7 @@
 
 import os
 from pybfms.decorators import *
+from pybfms.types import *
 
 from enum import Enum, auto
 

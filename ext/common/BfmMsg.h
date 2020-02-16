@@ -22,6 +22,7 @@ struct MsgParam {
     union {
         uint64_t           ui64;
         int64_t            i64;
+        const char         *str;
     } pval;
 };
 
@@ -82,6 +83,7 @@ private:
      * list is expanded when _idx >= _max
      */
     uint32_t                                m_param_l_max;
+#endif
 
     /**
      * The value of string parameters is stored in this
@@ -89,7 +91,6 @@ private:
      * to an element in this list.
      */
     std::vector<std::string>                m_str_l;
-#endif
 
     /**
      * Read index into the parameter list. _idx is

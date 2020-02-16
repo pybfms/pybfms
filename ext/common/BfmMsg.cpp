@@ -36,7 +36,8 @@ void BfmMsg::add_param(const MsgParam &p) {
 void BfmMsg::add_param_s(const char *p) {
 	MsgParam param;
     param.ptype = ParamType_Str;
-    param.str = p;
+    m_str_l.push_back(p);
+    param.pval.str = m_str_l.at(m_str_l.size()-1).c_str();
     add_param(param);
 }
 
@@ -80,7 +81,7 @@ int64_t BfmMsg::get_param_si() {
 const char *BfmMsg::get_param_str() {
     const char *ret = "";
     if (m_idx < m_param_l.size()) {
-        ret = m_param_l[m_idx].str.c_str();
+        ret = m_param_l[m_idx].pval.str;
         m_idx++;
     }
     return ret;

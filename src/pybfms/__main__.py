@@ -8,8 +8,8 @@ from pybfms.bfmgen import bfm_generate
 
 def lib(args):
     """Return the path to the VPI library"""
-    import pybfms_hdl_sim
-    print(pybfms_hdl_sim.__file__)
+    import pybfms_core
+    print(pybfms_core.__file__)
     
 
 def get_parser():

@@ -50,10 +50,11 @@ class BfmMgr():
         '''
         Obtain the list of BFMs from the native layer
         '''
-        import simulator
-        n_bfms = simulator.bfm_get_count()
+        import pybfms_core
+        n_bfms = pybfms_core.bfm_get_count()
+        self.bfm_l.clear()
         for i in range(n_bfms):
-            info = simulator.bfm_get_info(i)
+            info = pybfms_core.bfm_get_info(i)
             instname = info[0]
             clsname = info[1]
             try:
@@ -80,17 +81,16 @@ class BfmMgr():
                 instname,
                 type_info)
             # Add
-            setattr(bfm, "bfm_info", bfm_info)
+            bfm.bfm_info = bfm_info
 
             self.bfm_l.append(bfm)
 
     @staticmethod
-    def init():
-        import pybfms_hdl_sim
+    def init(force=False):
+        import pybfms_core
         inst = BfmMgr.inst()
-        if not inst.m_initialized:
-            print("TODO: fetch BFMs")
-#            simulator.bfm_set_call_method(BfmMgr.call)
+        if not inst.m_initialized or force:
+            pybfms_core.bfm_set_call_method(BfmMgr.call)
             BfmMgr.inst().load_bfms()
             inst.m_initialized = True
 

@@ -59,11 +59,11 @@ class import_task():
         
         def import_taskw(self, *args):
             # TODO:
-            import simulator
+            import pybfms_core
             arg_l = []
             for a in args:
                 arg_l.append(a)
-            simulator.bfm_send_msg(
+            pybfms_core.bfm_send_msg(
                 self.bfm_info.id,
                 info.id,
                 arg_l,

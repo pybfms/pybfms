@@ -3,7 +3,15 @@ Created on Feb 15, 2020
 
 @author: ballance
 '''
+from pybfms.bfm_method_param_info import BfmMethodParamInfo
+from pybfms.types import bfm_param_int_t
+from enum import IntEnum, auto
 
+class MsgParamType(IntEnum):
+    ParamType_Str = 0
+    ParamType_Si = auto()
+    ParamType_Ui = auto()
+    
 class BfmMethodInfo():
     '''
     Information about a single BFM method
@@ -34,16 +42,10 @@ class BfmMethodInfo():
 
         for a,t in zip(args, signature):
             self.signature.append(BfmMethodParamInfo(a, t))
-            try:
-                import simulator
-            except Exception:
-                # When we're not running in simulation, don't
-                # worry about being able to access constants from simulation
-                self.type_info.append(None)
-            else:
-                if isinstance(t, bfm_param_int_t):
-                    if t.s:
-                        self.type_info.append(simulator.BFM_SI_PARAM)
-                    else:
-                        self.type_info.append(simulator.BFM_UI_PARAM)
+            if isinstance(t, bfm_param_int_t):
+                if t.s:
+                    self.type_info.append(MsgParamType.ParamType_Si)
+                else:
+                    self.type_info.append(MsgParamType.ParamType_Ui)
+
                         
