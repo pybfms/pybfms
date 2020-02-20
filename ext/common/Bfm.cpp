@@ -6,6 +6,8 @@
 #include "Bfm.h"
 #include <stdio.h>
 
+#define EXTERN_C extern "C"
+
 Bfm::Bfm(
         const std::string        &inst_name,
         const std::string        &cls_name,
@@ -78,3 +80,24 @@ void Bfm::send_inbound_msg() {
 
 std::vector<Bfm *> Bfm::m_bfm_l;
 bfm_recv_msg_f Bfm::m_recv_msg_f = 0;
+
+
+EXTERN_C uint32_t bfm_get_count() {
+	return Bfm::get_bfms().size();
+}
+
+EXTERN_C const char *bfm_get_instname(uint32_t bfm_id) {
+	return Bfm::get_bfms().at(bfm_id)->get_instname().c_str();
+}
+
+EXTERN_C const char *bfm_get_clsname(uint32_t bfm_id) {
+	return Bfm::get_bfms().at(bfm_id)->get_clsname().c_str();
+}
+
+EXTERN_C void bfm_send_msg(uint32_t bfm_id, BfmMsg *msg) {
+	Bfm::get_bfms().at(bfm_id)->send_msg(msg);
+}
+
+EXTERN_C void bfm_set_recv_msg_cb(bfm_recv_msg_f f) {
+	Bfm::set_recv_msg_f(f);
+}

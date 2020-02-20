@@ -58,12 +58,10 @@ class import_task():
         _import_info_l.append(info)
         
         def import_taskw(self, *args):
-            # TODO:
-            import pybfms_core
             arg_l = []
             for a in args:
                 arg_l.append(a)
-            pybfms_core.bfm_send_msg(
+            BfmMgr.inst().send_msg(
                 self.bfm_info.id,
                 info.id,
                 arg_l,

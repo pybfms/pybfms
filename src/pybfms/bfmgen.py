@@ -136,9 +136,9 @@ def process_template_sv(template, bfm_name, info):
         # to create temporary variables to ensure the order is correct.
         for pi,p in enumerate(imp.signature):
             if p.ptype.s:
-                bfm_import_calls += "                  longint p" + str(pi) + " = pybfms.bfm_get_si_param(bfm_id);\n"
+                bfm_import_calls += "                  longint p" + str(pi) + " = pybfms_get_si_param(bfm_id);\n"
             else:
-                bfm_import_calls += "                  longint unsigned p" + str(pi) + " = pybfms.bfm_get_ui_param(bfm_id);\n"
+                bfm_import_calls += "                  longint unsigned p" + str(pi) + " = pybfms_get_ui_param(bfm_id);\n"
 
         bfm_import_calls += "                  " + imp.T.__name__  + "(\n"
         for pi in range(len(imp.signature)):
@@ -159,14 +159,14 @@ def process_template_sv(template, bfm_name, info):
                 bfm_export_tasks += ", "
         bfm_export_tasks += ");\n"
         bfm_export_tasks += "    begin\n"
-        bfm_export_tasks += "        pybfms.bfm_begin_msg(bfm_id, " + str(i) + ");\n"
+        bfm_export_tasks += "        pybfms_begin_msg(bfm_id, " + str(i) + ");\n"
         for p in exp.signature:
             if p.ptype.s:
-                bfm_export_tasks += "        pybfms.bfm_add_si_param(bfm_id, " + p.pname + ");\n"
+                bfm_export_tasks += "        pybfms_add_si_param(bfm_id, " + p.pname + ");\n"
             else:
-                bfm_export_tasks += "        pybfms.bfm_add_ui_param(bfm_id, {});\n".format(p.pname)
+                bfm_export_tasks += "        pybfms_add_ui_param(bfm_id, {});\n".format(p.pname)
 
-        bfm_export_tasks += "        pybfms.bfm_end_msg(bfm_id);\n"
+        bfm_export_tasks += "        pybfms_end_msg(bfm_id);\n"
         bfm_export_tasks += "    end\n"
         bfm_export_tasks += "    endtask\n"
 
@@ -181,16 +181,16 @@ def process_template_sv(template, bfm_name, info):
     pybfms_api_impl = """
     int          bfm_id;
 
-    import "DPI-C" context function int pybfms.bfm_claim_msg(int bfm_id);
-    import "DPI-C" context function longint pybfms.bfm_get_si_param(int bfm_id);
-    import "DPI-C" context function longint unsigned pybfms.bfm_get_ui_param(int bfm_id);
-    import "DPI-C" context function void pybfms.bfm_begin_msg(int bfm_id, int msg_id);
-    import "DPI-C" context function void pybfms.bfm_add_si_param(int bfm_id, longint v);
-    import "DPI-C" context function void pybfms.bfm_add_ui_param(int bfm_id, longint unsigned v);
-    import "DPI-C" context function void pybfms.bfm_end_msg(int bfm_id);
+    import "DPI-C" context function int pybfms_claim_msg(int bfm_id);
+    import "DPI-C" context function longint pybfms_get_si_param(int bfm_id);
+    import "DPI-C" context function longint unsigned pybfms_get_ui_param(int bfm_id);
+    import "DPI-C" context function void pybfms_begin_msg(int bfm_id, int msg_id);
+    import "DPI-C" context function void pybfms_add_si_param(int bfm_id, longint v);
+    import "DPI-C" context function void pybfms_add_ui_param(int bfm_id, longint unsigned v);
+    import "DPI-C" context function void pybfms_end_msg(int bfm_id);
 
     task automatic ${bfm_name}_process_msg();
-        int msg_id = pybfms.bfm_claim_msg(bfm_id);
+        int msg_id = pybfms_claim_msg(bfm_id);
         case (msg_id)
 ${bfm_import_calls}
         default: begin
@@ -235,7 +235,7 @@ static void ${bfm_name}_notify_cb(void *user_data) {
 }
 
 int ${bfm_name}_register(const char *inst_name) {
-    return pybfms.bfm_register(
+    return pybfms_register(
         inst_name,
         \"${bfm_classname}\",
         &${bfm_name}_notify_cb,
@@ -270,8 +270,8 @@ def bfm_generate_sv(args):
             out_c.write("#endif\n")
             out_c.write("\n")
             out_c.write("#include \"svdpi.h\"\n")
-            out_c.write("typedef void (*pybfms.bfm_notify_f)(void *);\n")
-            out_c.write("int pybfms.bfm_register(const char *, const char *, pybfms.bfm_notify_f, void *);\n")
+            out_c.write("typedef void (*pybfms_notify_f)(void *);\n")
+            out_c.write("int pybfms_register(const char *, const char *, pybfms_notify_f, void *);\n")
 
             for t,info in inst.bfm_type_info_m.items():
                 if BfmType.Verilog not in info.hdl.keys():
@@ -312,6 +312,8 @@ def bfm_generate(args):
         bfm_generate_sv(args)
     elif args.language == "vhdl":
         raise Exception("VHDL currently unsupported")
+    else:
+        raise Exception("unsupported language \"" + args.language + "\"")
 
 def get_parser():
     parser = argparse.ArgumentParser(prog="pybfms.bfmgen")
@@ -322,7 +324,8 @@ def get_parser():
     generate_cmd = subparser.add_parser("generate")
     generate_cmd.set_defaults(func=bfm_generate)
     generate_cmd.add_argument("-m", action='append')
-    generate_cmd.add_argument("-l", "--language", default="vlog")
+    generate_cmd.add_argument("-l", "--language", default="vlog",
+        choices=["vlog", "sv", "vhdl"])
     generate_cmd.add_argument("-o", default=None)
 
     return parser

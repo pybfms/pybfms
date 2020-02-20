@@ -5,16 +5,30 @@ Created on Feb 11, 2020
 '''
 import re
 import importlib
+import ctypes
 from pybfms.bfm_info import BfmInfo
+from ctypes import cdll, c_uint, CFUNCTYPE, c_char_p, c_void_p
 
 class BfmMgr():
 
     _inst = None
 
     def __init__(self):
+        from pybfms import get_libpybfms
         self.bfm_l = []
         self.bfm_type_info_m = {}
         self.m_initialized = False
+        
+        libpybfms_path = get_libpybfms()
+        libpybfms = cdll.LoadLibrary(libpybfms_path)
+
+        bfm_get_count = CFUNCTYPE(c_uint)
+        self._get_count = bfm_get_count(("bfm_get_count", libpybfms), ())
+        bfm_get_instname = CFUNCTYPE(c_char_p, c_uint)
+        self._get_instname = bfm_get_instname(("bfm_get_instname", libpybfms), ((1, "bfm_id"),))
+        bfm_get_clsname = CFUNCTYPE(c_char_p, c_uint)
+        self._get_clsname = bfm_get_clsname(("bfm_get_clsname", libpybfms), ((1, "bfm_id"),))
+        
 
     def add_type_info(self, T, type_info):
         self.bfm_type_info_m[T] = type_info
@@ -50,13 +64,11 @@ class BfmMgr():
         '''
         Obtain the list of BFMs from the native layer
         '''
-        import pybfms_core
-        n_bfms = pybfms_core.bfm_get_count()
+        n_bfms = self._get_count()
         self.bfm_l.clear()
         for i in range(n_bfms):
-            info = pybfms_core.bfm_get_info(i)
-            instname = info[0]
-            clsname = info[1]
+            instname = self._get_instname(i).decode('utf-8')
+            clsname = self._get_clsname(i).decode('utf-8')
             try:
                 pkgname, clsleaf = clsname.rsplit('.',1)
             except ValueError:
@@ -87,10 +99,11 @@ class BfmMgr():
 
     @staticmethod
     def init(force=False):
-        import pybfms_core
         inst = BfmMgr.inst()
         if not inst.m_initialized or force:
-            pybfms_core.bfm_set_call_method(BfmMgr.call)
+            print("TODO: register BFM message callback")
+#            CALL_FUNC_T = CFUNCTYPE(None, c_uint, c_void_p)
+#            pybfms_core.bfm_set_call_method(BfmMgr.call)
             BfmMgr.inst().load_bfms()
             inst.m_initialized = True
 
@@ -106,3 +119,10 @@ class BfmMgr():
             raise AttributeError("BFM object does not contain 'bfm_info' field")
 
         bfm.bfm_info.call_method(method_id, params)
+        
+    def send_msg(self,
+        bfm_id,
+        msg_id,
+        param_l,
+        type_info_l):
+        print("TODO: send_msg")

@@ -10,6 +10,10 @@ export PYTHONPATH
 # TODO: Icarus Specific
 SIM_FLAGS += -m $(shell python3 -m pybfms lib --vpi)
 
+ifeq ($(SIM),verilator)
+  COMPILE_ARGS += -Wno-fatal
+endif
+
 
 TOPLEVEL_LANG ?= verilog
 
@@ -34,6 +38,7 @@ all : prereqs
 
 prereqs :
 	python3 $(PYBFMS_DIR)/setup.py build_ext
+	python3 -m pybfms generate -l vlog -m simple_bfm
 
 
 

@@ -4,12 +4,15 @@ Created on Feb 11, 2020
 @author: ballance
 '''
 import argparse
+import os
+import sys
 from pybfms.bfmgen import bfm_generate
+from pybfms import get_libpybfms
 
 def lib(args):
-    """Return the path to the VPI library"""
-    import pybfms_core
-    print(pybfms_core.__file__)
+    libpath = get_libpybfms()
+
+    print(libpath)
     
 
 def get_parser():
@@ -25,7 +28,8 @@ def get_parser():
     generate_cmd = subparser.add_parser("generate")
     generate_cmd.set_defaults(func=bfm_generate)
     generate_cmd.add_argument("-m", action='append')
-    generate_cmd.add_argument("-l", "--language", default="vlog")
+    generate_cmd.add_argument("-l", "--language", default="vlog",
+        choices=["vlog", "sv", "vhdl"])
     generate_cmd.add_argument("-o", default=None)
     
     return parser

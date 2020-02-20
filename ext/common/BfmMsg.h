@@ -101,5 +101,6 @@ private:
 
 };
 
+
 #endif /* INCLUDED_BFM_MSG_H */
 

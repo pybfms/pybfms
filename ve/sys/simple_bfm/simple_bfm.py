@@ -2,7 +2,8 @@
 import pybfms
 
 @pybfms.bfm(hdl={
-    pybfms.BfmType.Verilog : pybfms.bfm_hdl_path(__file__, "hdl/simple_bfm.sv")
+    pybfms.BfmType.Verilog : pybfms.bfm_hdl_path(__file__, "hdl/simple_bfm.sv"),
+    pybfms.BfmType.SystemVerilog : pybfms.bfm_hdl_path(__file__, "hdl/simple_bfm.sv")
     })
 class SimpleBFM():
     

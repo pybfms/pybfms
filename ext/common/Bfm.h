@@ -11,7 +11,7 @@
 #include "BfmMsg.h"
 
 typedef void (*bfm_recv_msg_f)(
-		uint32_t		msg_id,
+		uint32_t		bfm_id,
 		BfmMsg			*msg);
 
 typedef void (*bfm_notify_f)(void *);
