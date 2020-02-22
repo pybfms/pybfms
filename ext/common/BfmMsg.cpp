@@ -7,6 +7,8 @@
 #include <string.h>
 #include <stdio.h>
 
+#define EXTERN_C extern "C"
+
 BfmMsg::BfmMsg(uint32_t id) {
     m_id = id;
     m_idx = 0;
@@ -85,6 +87,43 @@ const char *BfmMsg::get_param_str() {
         m_idx++;
     }
     return ret;
+}
+
+
+EXTERN_C void *bfm_msg_new(uint32_t msg_id) {
+	BfmMsg *ret = new BfmMsg(msg_id);
+	fprintf(stdout, "bfm_msg_new: %p\n", ret);
+	fflush(stdout);
+
+	return ret;
+}
+
+EXTERN_C void bfm_msg_add_param_ui(BfmMsg *msg, uint64_t p) {
+	msg->add_param_ui(p);
+}
+
+EXTERN_C void bfm_msg_add_param_si(BfmMsg *msg, int64_t p) {
+	msg->add_param_si(p);
+}
+
+EXTERN_C uint32_t bfm_msg_id(BfmMsg *msg) {
+	return msg->id();
+}
+
+EXTERN_C const MsgParam *bfm_msg_get_param(BfmMsg *msg) {
+	return msg->get_param();
+}
+
+EXTERN_C uint32_t bfm_msg_param_type(MsgParam *p) {
+	return p->ptype;
+}
+
+EXTERN_C uint64_t bfm_msg_param_ui(MsgParam *p) {
+	return p->pval.ui64;
+}
+
+EXTERN_C int64_t bfm_msg_param_si(MsgParam *p) {
+	return p->pval.i64;
 }
 
 

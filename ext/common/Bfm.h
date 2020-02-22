@@ -49,7 +49,7 @@ public:
 
     void send_inbound_msg();
 
-    static void set_recv_msg_f(bfm_recv_msg_f f) { m_recv_msg_f = f; }
+    static void set_recv_msg_f(bfm_recv_msg_f f);
 
 protected:
 

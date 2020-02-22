@@ -7,7 +7,18 @@ import re
 import importlib
 import ctypes
 from pybfms.bfm_info import BfmInfo
-from ctypes import cdll, c_uint, CFUNCTYPE, c_char_p, c_void_p
+from ctypes import cdll, c_uint, CFUNCTYPE, c_char_p, c_void_p, c_ulonglong,\
+    c_longlong, c_ulong
+from pybfms.bfm_type_info import BfmTypeInfo
+from pybfms.bfm_method_info import MsgParamType
+
+RECV_MSG_FUNC_T = CFUNCTYPE(None, c_uint, c_void_p)
+
+def recv_msg_func(bfm_id, msg):
+    BfmMgr._recv_msg(bfm_id, msg)
+    
+recv_msg_func_p = RECV_MSG_FUNC_T(recv_msg_func)
+
 
 class BfmMgr():
 
@@ -28,6 +39,47 @@ class BfmMgr():
         self._get_instname = bfm_get_instname(("bfm_get_instname", libpybfms), ((1, "bfm_id"),))
         bfm_get_clsname = CFUNCTYPE(c_char_p, c_uint)
         self._get_clsname = bfm_get_clsname(("bfm_get_clsname", libpybfms), ((1, "bfm_id"),))
+        
+        bfm_send_msg = CFUNCTYPE(None, c_uint, c_void_p)
+        self._send_msg = bfm_send_msg(("bfm_send_msg", libpybfms), ((1, "bfm_id"), (1, "msg")))
+
+        bfm_set_recv_msg_callback = CFUNCTYPE(None, c_void_p)
+        self._set_recv_msg_callback = bfm_set_recv_msg_callback(
+            ("bfm_set_recv_msg_callback", libpybfms), 
+            ((1, "f"),))
+
+        bfm_msg_new = CFUNCTYPE(c_void_p, c_uint)
+        self._msg_new = bfm_msg_new(
+            ("bfm_msg_new", libpybfms),
+            ((1, "msg_id"),))
+        bfm_msg_add_param_ui = CFUNCTYPE(None, c_void_p, c_ulonglong)
+        self._msg_add_param_ui = bfm_msg_add_param_ui(
+            ("bfm_msg_add_param_ui", libpybfms),
+            ((1, "msg"), (1, "p")))
+        bfm_msg_add_param_si = CFUNCTYPE(None, c_void_p, c_longlong)
+        self._msg_add_param_si = bfm_msg_add_param_si(
+            ("bfm_msg_add_param_si", libpybfms),
+            ((1, "msg"), (1, "p")))
+        bfm_msg_id = CFUNCTYPE(c_uint, c_void_p)
+        self._msg_id = bfm_msg_id(
+            ("bfm_msg_id", libpybfms),
+            ((1, "msg"),))
+        bfm_msg_get_param = CFUNCTYPE(c_void_p, c_void_p)
+        self._msg_get_param = bfm_msg_get_param(
+            ("bfm_msg_get_param", libpybfms),
+            ((1, "msg"),))
+        bfm_msg_param_type = CFUNCTYPE(c_uint, c_void_p)
+        self._msg_param_type = bfm_msg_param_type(
+            ("bfm_msg_param_type", libpybfms),
+            ((1, "msg"),))
+        bfm_msg_param_ui = CFUNCTYPE(c_ulonglong, c_void_p)
+        self._msg_param_ui = bfm_msg_param_ui(
+            ("bfm_msg_param_ui", libpybfms),
+            ((1, "msg"),))
+        bfm_msg_param_si = CFUNCTYPE(c_longlong, c_void_p)
+        self._msg_param_si = bfm_msg_param_si(
+            ("bfm_msg_param_si", libpybfms),
+            ((1, "msg"),))
         
 
     def add_type_info(self, T, type_info):
@@ -96,24 +148,42 @@ class BfmMgr():
             bfm.bfm_info = bfm_info
 
             self.bfm_l.append(bfm)
+            
 
     @staticmethod
     def init(force=False):
         inst = BfmMgr.inst()
         if not inst.m_initialized or force:
-            print("TODO: register BFM message callback")
-#            CALL_FUNC_T = CFUNCTYPE(None, c_uint, c_void_p)
+            print("set_recv_msg_callback: " + str(recv_msg_func))
+            inst._set_recv_msg_callback(recv_msg_func_p)
 #            pybfms_core.bfm_set_call_method(BfmMgr.call)
             BfmMgr.inst().load_bfms()
             inst.m_initialized = True
-
+            
     @staticmethod
-    def call(
-            bfm_id,
-            method_id,
-            params):
+    def _recv_msg(bfm_id, msg):
         inst = BfmMgr.inst()
-        bfm = inst.bfm_l[bfm_id]
+        msg_id = inst._msg_id(msg)
+        
+        params = []
+        while True:
+            p = inst._msg_get_param(msg)
+            if p is None:
+                break
+            
+            pt = inst._msg_param_type(p)
+            if pt == MsgParamType.ParamType_Si:
+                params.append(inst._msg_param_si(p))
+            elif pt == MsgParamType.ParamType_Ui:
+                params.append(inst._msg_param_ui(p))
+            else:
+                print("Error: unsupported parameter type " + str(pt))
+
+        print("TODO: _recv_msg: " + str(params))
+        inst.call(bfm_id, msg_id, params)
+
+    def call(self, bfm_id, method_id, params):
+        bfm = self.bfm_l[bfm_id]
 
         if not hasattr(bfm, "bfm_info"):
             raise AttributeError("BFM object does not contain 'bfm_info' field")
@@ -125,4 +195,18 @@ class BfmMgr():
         msg_id,
         param_l,
         type_info_l):
-        print("TODO: send_msg")
+        
+        msg_p = self._msg_new(msg_id)
+        
+        print("TODO: send_msg (" + str(msg_p) + ")")
+        for ti,p in zip(type_info_l, param_l):
+            if ti == MsgParamType.ParamType_Ui:
+                self._msg_add_param_ui(msg_p, p)
+            elif ti == MsgParamType.ParamType_Si:
+                self._msg_add_param_si(msg_p, p)
+            else:
+                raise Exception("unsupported message parameter type " + str(ti))
+
+        self._send_msg(bfm_id, msg_p)
+
+    
