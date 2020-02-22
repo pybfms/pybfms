@@ -11,6 +11,10 @@ from ctypes import cdll, c_uint, CFUNCTYPE, c_char_p, c_void_p, c_ulonglong,\
     c_longlong, c_ulong
 from pybfms.bfm_type_info import BfmTypeInfo
 from pybfms.bfm_method_info import MsgParamType
+from enum import IntEnum
+
+class BuiltinMsgId(IntEnum):
+    Init = 0x8000
 
 RECV_MSG_FUNC_T = CFUNCTYPE(None, c_uint, c_void_p)
 
@@ -112,7 +116,7 @@ class BfmMgr():
 
         return BfmMgr._inst
 
-    def load_bfms(self):
+    def _load_bfms(self):
         '''
         Obtain the list of BFMs from the native layer
         '''
@@ -146,9 +150,12 @@ class BfmMgr():
                 type_info)
             # Add
             bfm.bfm_info = bfm_info
+            
+            if type_info.has_init:
+                # Send the initialization message
+                self.send_msg(bfm_info.id, BuiltinMsgId.Init, [], [])
 
             self.bfm_l.append(bfm)
-            
 
     @staticmethod
     def init(force=False):
@@ -157,7 +164,7 @@ class BfmMgr():
             print("set_recv_msg_callback: " + str(recv_msg_func))
             inst._set_recv_msg_callback(recv_msg_func_p)
 #            pybfms_core.bfm_set_call_method(BfmMgr.call)
-            BfmMgr.inst().load_bfms()
+            inst._load_bfms()
             inst.m_initialized = True
             
     @staticmethod
@@ -179,7 +186,6 @@ class BfmMgr():
             else:
                 print("Error: unsupported parameter type " + str(pt))
 
-        print("TODO: _recv_msg: " + str(params))
         inst.call(bfm_id, msg_id, params)
 
     def call(self, bfm_id, method_id, params):
@@ -198,7 +204,6 @@ class BfmMgr():
         
         msg_p = self._msg_new(msg_id)
         
-        print("TODO: send_msg (" + str(msg_p) + ")")
         for ti,p in zip(type_info_l, param_l):
             if ti == MsgParamType.ParamType_Ui:
                 self._msg_add_param_ui(msg_p, p)

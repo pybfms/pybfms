@@ -28,7 +28,7 @@ else
 
 COCOTB:=$(shell cocotb-config --share)
 
-VERILOG_SOURCES = simple_bfm_top.sv pybfms_bfms.v
+VERILOG_SOURCES = simple_bfm_top.sv pybfms.v
 TOPLEVEL=simple_bfm_top
 
 MODULE=simple_bfm_test
@@ -40,6 +40,8 @@ prereqs :
 	python3 $(PYBFMS_DIR)/setup.py build_ext
 	python3 -m pybfms generate -l vlog -m simple_bfm
 
+clean::
+	@rm -rf pybfms.*
 
 
 include $(COCOTB)/makefiles/Makefile.inc

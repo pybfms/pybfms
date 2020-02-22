@@ -23,6 +23,12 @@ def process_template_vl(template, info):
     t = Template(template)
 
     bfm_import_calls = ""
+    
+    if info.has_init:
+        bfm_import_calls += "              'h8000: begin\n"
+        bfm_import_calls += "                  init();\n"
+        bfm_import_calls += "              end\n"
+        
     for i,imp in enumerate(info.import_info):
         bfm_import_calls += "              " + str(i) + ": begin\n"
         bfm_import_calls += "                  " + imp.T.__name__  + "(\n"
@@ -63,7 +69,6 @@ def process_template_vl(template, info):
         bfm_export_tasks += "    end\n"
         bfm_export_tasks += "    endtask\n"
 
-
     impl_param_m = dict(
         bfm_classname=info.T.__module__+"."+info.T.__qualname__,
         bfm_import_calls=bfm_import_calls,
@@ -79,7 +84,7 @@ ${bfm_export_tasks}
 
     initial begin
       bfm_id = $pybfms_register("${bfm_classname}", bfm_ev);
-
+      
       while (1) begin
           bfm_msg_id = $pybfms_claim_msg(bfm_id);
 
@@ -129,6 +134,11 @@ def process_template_sv(template, bfm_name, info):
     t = Template(template)
 
     bfm_import_calls = ""
+    if info.has_init:
+        bfm_import_calls += "              'h8000: begin\n"
+        bfm_import_calls += "                  init();\n"
+        bfm_import_calls += "              end\n"
+        
     for i,imp in enumerate(info.import_info):
         bfm_import_calls += "              " + str(i) + ": begin\n"
         # Verilator doesn't evaluate expressions in the order that
@@ -300,11 +310,11 @@ def bfm_generate(args):
 
     if args.o is None:
         if args.language == "vlog":
-            args.o = "pybfms_bfms.v"
+            args.o = "pybfms.v"
         elif args.language == "sv":
-            args.o = "pybfms_bfms.sv"
+            args.o = "pybfms.sv"
         elif args.language == "vhdl":
-            args.o = "pybfms_bfms.vhdl"
+            args.o = "pybfms.vhd"
 
     if args.language == "vlog":
         bfm_generate_vl(args)

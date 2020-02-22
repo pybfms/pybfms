@@ -19,11 +19,10 @@ class bfm():
     def __init__(self, hdl, has_init=False):
         self.hdl = hdl
         self.has_init = has_init
-        print("bfm decorator")
 
     def __call__(self, T):
         global _import_info_l, _export_info_l
-        type_info = BfmTypeInfo(T, self.hdl, 
+        type_info = BfmTypeInfo(T, self.hdl, self.has_init,
             _import_info_l.copy(), _export_info_l.copy())
         BfmMgr.inst().add_type_info(T, type_info)
         _import_info_l.clear()
