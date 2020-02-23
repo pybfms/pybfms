@@ -35,16 +35,18 @@ cd ${BUILD_DIR}/pybfms
 for py in cp35-cp35m cp36-cp36m cp37-cp37m cp38-cp38; do
   echo "Python: ${py}"
   ls
-  echo "--> running python on setup.py"
   python=/opt/python/${py}/bin/python
+  echo "--> running ${python} on setup.py"
   $python setup.py sdist bdist_wheel
   if test $? -ne 0; then exit 1; fi
-  echo "<-- running python on setup.py"
+  echo "<-- running ${python} on setup.py"
 done
 
 for whl in dist/*.whl; do
+  echo "--> running auditwheel `which auditwheel` on $whl"
   auditwheel repair $whl
   if test $? -ne 0; then exit 1; fi
+  echo "<-- running auditwheel `which auditwheel` on $whl"
 done
 
 rm -rf /pybfms/result
