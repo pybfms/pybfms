@@ -4,7 +4,8 @@ Created on Feb 11, 2020
 @author: ballance
 '''
 from pybfms.bfm_mgr import BfmMgr
-import pybfms
+import os
+from enum import Enum, auto
 from pybfms.bfm_method_info import BfmMethodInfo
 from pybfms.bfm_type_info import BfmTypeInfo
 
@@ -12,11 +13,41 @@ from pybfms.bfm_type_info import BfmTypeInfo
 _import_info_l = []
 _export_info_l = []
 
+def bfm_hdl_path(py_file, template):
+    """
+    Returns the path to a BFM template located relative to the Python BFM file
+    """
+    return os.path.join(
+        os.path.dirname(os.path.abspath(py_file)),
+        template)
+
+class BfmType(Enum):
+    """
+    Specifies BFM implementation language and interface
+    """
+    
+    Verilog = auto() 
+    """Verilog BFM interfaced via VPI"""
+    
+    SystemVerilog = auto() 
+    """ SystemVerilog BFM interfaced via DPI"""
+
 class bfm():
     '''
     Decorator to identify a BFM type.
     '''
     def __init__(self, hdl, has_init=False):
+        """
+        Parameters
+        ----------
+        hdl : dict of :class:`~pybfms.decorators.BfmType` : path
+              Provides information about the HDL source that
+              implements the BFM for various HDL languages
+              
+        has_init : bool
+              Specifies whether this BFM has an `init` task.
+              
+        """
         self.hdl = hdl
         self.has_init = has_init
 
@@ -31,8 +62,17 @@ class bfm():
         return T
 
 class export_task():
+    """
+    Identifies a BFM-class method that can be called from the HDL
+    """
 
     def __init__(self, *args):
+        """
+        Parameters
+        ----------
+        args : list of data types
+               Specifies the signature of the 
+        """
         self.signature = args
 
     def __call__(self, m):
@@ -44,10 +84,16 @@ class export_task():
 
 class import_task():
     '''
-    Method that is being imported from the HDL environment
+    Identifies a BFM-class method implemented in the HDL
     '''
 
     def __init__(self, *args):
+        """
+        Parameters
+        ----------
+        args : list of data types
+               Specifies the signature of the 
+        """
         self.signature = args
 
     def __call__(self, m):

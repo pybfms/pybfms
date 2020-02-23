@@ -20,15 +20,6 @@ def init_backend(backend=None):
     else:
         _backend = backend
 
-def bfm_hdl_path(py_file, template):
-    return os.path.join(
-        os.path.dirname(os.path.abspath(py_file)),
-        template)
-
-
-class BfmType(Enum):
-    Verilog = auto
-    SystemVerilog = auto
     
 def get_libpybfms():
     """Return the path to the VPI library"""
@@ -44,9 +35,15 @@ def get_libpybfms():
     return libpath
 
 def event():
+    """
+    Returns an event object for synchronization
+    """
     return _backend.event()
 
 def delay(time_ps, units=None):
+    """
+    Returns an awaitable object to delay for a period of simulation time
+    """
     return _backend.delay(time_ps, units)
 
 def delta():
