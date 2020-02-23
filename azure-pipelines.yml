@@ -21,7 +21,7 @@ jobs:
   - task: TwineAuthenticate@1
     condition: eq(variables['Build.SourceBranchName'], 'master')
     inputs:
-      pythonUploadServiceConnection: pypi
+      pythonUploadServiceConnection: pypi-pybfms
   - script: |
       # Only deploy from master
       if test "$(Build.SourceBranchName)" = "master"; then
