@@ -6,16 +6,20 @@ import os
 import sys
 
 from enum import Enum, auto
+from pybfms.backend import BackendCocotb
 
-def bfm_hdl_path(py_file, template):
-    return os.path.join(
-        os.path.dirname(os.path.abspath(py_file)),
-        template)
+_backend = None
 
+def init_backend(backend=None):
+    global _backend
+    
+    if backend is None:
+        # Only set the backend if if hasn't already been set
+        if _backend is None:
+            _backend = BackendCocotb()
+    else:
+        _backend = backend
 
-class BfmType(Enum):
-    Verilog = auto
-    SystemVerilog = auto
     
 def get_libpybfms():
     """Return the path to the VPI library"""
@@ -29,5 +33,24 @@ def get_libpybfms():
         raise Exception("Failed to locate libpybfms.so on the PYTHONPATH")
     
     return libpath
+
+def event():
+    """
+    Returns an event object for synchronization
+    """
+    return _backend.event()
+
+def delay(time_ps, units=None):
+    """
+    Returns an awaitable object to delay for a period of simulation time
+    """
+    return _backend.delay(time_ps, units)
+
+def delta():
+    return _backend.delta()
+
+def lock():
+    return _backend.lock()
+    
     
     

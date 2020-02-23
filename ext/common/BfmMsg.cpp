@@ -91,8 +91,6 @@ const char *BfmMsg::get_param_str() {
 
 EXTERN_C void *bfm_msg_new(uint32_t msg_id) {
 	BfmMsg *ret = new BfmMsg(msg_id);
-	fprintf(stdout, "bfm_msg_new: %p\n", ret);
-	fflush(stdout);
 
 	return ret;
 }
