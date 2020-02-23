@@ -29,12 +29,17 @@ cp -r /pybfms .
 # Add the build number to the version
 #sed -i -e "s/{{BUILD_NUM}}/${BUILD_NUM}/g" setup.py
 
+cd ${BUILD_DIR}/pybfms
+
 # for py in python27 rh-python35 rh-python36; do
-for py in cp34-cp34m cp35-cp35m cp36-cp36m cp37-cp37m cp38-cp38; do
+for py in cp35-cp35m cp36-cp36m cp37-cp37m cp38-cp38; do
   echo "Python: ${py}"
+  ls
+  echo "--> running python on setup.py"
   python=/opt/python/${py}/bin/python
   $python setup.py sdist bdist_wheel
   if test $? -ne 0; then exit 1; fi
+  echo "<-- running python on setup.py"
 done
 
 for whl in dist/*.whl; do
