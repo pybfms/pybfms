@@ -17,20 +17,19 @@ jobs:
     
   - script: |
       docker run -e BUILD_NUM=$(Build.BuildNumber) -v $(Build.Repository.LocalPath):/pybfms pybfms
-      python setup.py bdist_wheel --universal
     displayName: 'Build Wheel'
-#  - task: TwineAuthenticate@1
-#    condition: eq(variables['Build.SourceBranchName'], 'master')
-#    inputs:
-#      pythonUploadServiceConnection: pypi
-#  - script: |
-#      # Only deploy from master
-#      if test "$(Build.SourceBranchName)" = "master"; then
-#          python -m twine --version
-#          echo "Calling twine"
-#          python -m twine upload -r pybfms --config-file $(PYPIRC_PATH) dist/*.whl
-#          echo "Calling twine complete"
-#      fi
-#    displayName: 'Upload to PyPi'
+  - task: TwineAuthenticate@1
+    condition: eq(variables['Build.SourceBranchName'], 'master')
+    inputs:
+      pythonUploadServiceConnection: pypi
+  - script: |
+      # Only deploy from master
+      if test "$(Build.SourceBranchName)" = "master"; then
+          python -m twine --version
+          echo "Calling twine"
+          python -m twine upload -r pybfms --config-file $(PYPIRC_PATH) result/wheelhouse/* result/dist/*.tar.gz
+          echo "Calling twine complete"
+      fi
+    displayName: 'Upload to PyPi'
 
 
