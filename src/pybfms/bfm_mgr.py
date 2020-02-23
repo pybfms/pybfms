@@ -12,6 +12,8 @@ from ctypes import cdll, c_uint, CFUNCTYPE, c_char_p, c_void_p, c_ulonglong,\
 from pybfms.bfm_type_info import BfmTypeInfo
 from pybfms.bfm_method_info import MsgParamType
 from enum import IntEnum
+from pybfms.backend import BackendCocotb
+import pybfms
 
 class BuiltinMsgId(IntEnum):
     Init = 0x8000
@@ -160,7 +162,12 @@ class BfmMgr():
             self.bfm_l.append(bfm)
 
     @staticmethod
-    def init(force=False):
+    async def init(backend=None, force=False):
+        pybfms.init_backend(backend)
+
+        # Delay for a delta to allow BFMs to register
+        await pybfms.delta()
+        
         inst = BfmMgr.inst()
         if not inst.m_initialized or force:
             print("set_recv_msg_callback: " + str(recv_msg_func))
