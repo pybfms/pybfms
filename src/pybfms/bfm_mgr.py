@@ -121,10 +121,12 @@ class BfmMgr():
         Obtain the list of BFMs from the native layer
         '''
         n_bfms = self._get_count()
+        print("N_BFMS: " + str(n_bfms))
         self.bfm_l.clear()
         for i in range(n_bfms):
             instname = self._get_instname(i).decode('utf-8')
             clsname = self._get_clsname(i).decode('utf-8')
+            print("BFM: " + instname + " : " + clsname)
             try:
                 pkgname, clsleaf = clsname.rsplit('.',1)
             except ValueError:

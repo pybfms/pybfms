@@ -23,7 +23,8 @@ def get_parser():
     subparser.dest = 'command'
     vpi_lib_cmd = subparser.add_parser("lib")
     vpi_lib_cmd.set_defaults(func=lib)
-    vpi_lib_cmd.add_argument("-v", "--vpi", action="store_const", const="vpi")
+    vpi_lib_cmd.add_argument("--vpi", action="store_const", const="vpi")
+    vpi_lib_cmd.add_argument("--dpi", action="store_const", const="dpi")
     
     generate_cmd = subparser.add_parser("generate")
     generate_cmd.set_defaults(func=bfm_generate)
