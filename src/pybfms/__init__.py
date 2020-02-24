@@ -34,6 +34,12 @@ def get_libpybfms():
     
     return libpath
 
+async def init(backend=None, force=False):
+    await BfmMgr.init()
+    
+def find_bfm(pattern):
+    return BfmMgr.find_bfm(pattern)
+
 def event():
     """
     Returns an event object for synchronization

@@ -123,7 +123,6 @@ class BfmMgr():
         Obtain the list of BFMs from the native layer
         '''
         n_bfms = self._get_count()
-        print("N_BFMS: " + str(n_bfms))
         self.bfm_l.clear()
         for i in range(n_bfms):
             instname = self._get_instname(i).decode('utf-8')
@@ -154,10 +153,6 @@ class BfmMgr():
                 type_info)
             # Add
             bfm.bfm_info = bfm_info
-            
-            if type_info.has_init:
-                # Send the initialization message
-                self.send_msg(bfm_info.id, BuiltinMsgId.Init, [], [])
 
             self.bfm_l.append(bfm)
 
@@ -170,11 +165,15 @@ class BfmMgr():
         
         inst = BfmMgr.inst()
         if not inst.m_initialized or force:
-            print("set_recv_msg_callback: " + str(recv_msg_func))
             inst._set_recv_msg_callback(recv_msg_func_p)
 #            pybfms_core.bfm_set_call_method(BfmMgr.call)
             inst._load_bfms()
             inst.m_initialized = True
+
+            for bfm in inst.bfm_l:            
+                if bfm.bfm_info.type_info.has_init:
+                    # Send the initialization message
+                    inst.send_msg(bfm.bfm_info.id, BuiltinMsgId.Init, [], [])
             
     @staticmethod
     def _recv_msg(bfm_id, msg):

@@ -16,7 +16,7 @@ def lib(args):
     
 
 def get_parser():
-    parser = argparse.ArgumentParser(prog="pybfms", help="Provides operations on BFMs")
+    parser = argparse.ArgumentParser(prog="pybfms")
 
     subparser = parser.add_subparsers()
     subparser.required = True
