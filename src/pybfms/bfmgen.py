@@ -48,10 +48,11 @@ def process_template_vl(template, info):
     for i,exp in enumerate(info.export_info):
         bfm_export_tasks += "    task " + exp.T.__name__
 
+        print("Creating export tasks")
         if len(exp.signature) > 0:
             bfm_export_tasks += "("
             for j,p in enumerate(exp.signature):
-                bfm_export_tasks += p.ptype.vl_type() + " " + p.pname
+                bfm_export_tasks += "input " + p.ptype.vl_type() + " " + p.pname
                 if j+1 < len(exp.signature):
                     bfm_export_tasks += ", "
             bfm_export_tasks += ");\n"
@@ -164,7 +165,7 @@ def process_template_sv(template, bfm_name, info):
     for i,exp in enumerate(info.export_info):
         bfm_export_tasks += "    task " + exp.T.__name__ + "("
         for j,p in enumerate(exp.signature):
-            bfm_export_tasks += p.ptype.vl_type() + " " + p.pname
+            bfm_export_tasks += "input " + p.ptype.vl_type() + " " + p.pname
             if j+1 < len(exp.signature):
                 bfm_export_tasks += ", "
         bfm_export_tasks += ");\n"
