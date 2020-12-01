@@ -5,6 +5,7 @@
 #include "vpi_user.h"
 #include <stdio.h>
 #include <string>
+#include <stdlib.h>
 #ifndef _WIN32
 #include <dlfcn.h>
 #endif
