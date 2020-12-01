@@ -401,7 +401,6 @@ static int pybfms_end_msg_tf(char *user_data) {
 
 static void register_bfm_tf(void) {
     s_vpi_systf_data tf_data;
-    if (prv_debug) {
 
     if (!load_vpi_api()) {
     	fprintf(stdout, "Error: VPI API failed to load\n");
