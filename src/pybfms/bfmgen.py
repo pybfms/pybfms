@@ -192,16 +192,24 @@ def process_template_sv(template, bfm_name, info):
     pybfms_api_impl = """
     int          bfm_id;
 
+    import "DPI-C" context function int pybfms_register(
+        string     iname,
+        string     clsname,
+        chandle    notify_cb,
+        chandle    notify_ud);
     import "DPI-C" context function int pybfms_claim_msg(int bfm_id);
     import "DPI-C" context function longint pybfms_get_si_param(int bfm_id);
     import "DPI-C" context function longint unsigned pybfms_get_ui_param(int bfm_id);
     import "DPI-C" context function void pybfms_begin_msg(int bfm_id, int msg_id);
     import "DPI-C" context function void pybfms_add_si_param(int bfm_id, longint v);
     import "DPI-C" context function void pybfms_add_ui_param(int bfm_id, longint unsigned v);
-    import "DPI-C" context function void pybfms_end_msg(int bfm_id);
+    import "DPI-C" context task pybfms_end_msg(int bfm_id);
 
     task automatic ${bfm_name}_process_msg();
-        int msg_id = pybfms_claim_msg(bfm_id);
+        int msg_id;
+        $display("${bfm_name}_process_msg");
+        msg_id = pybfms_claim_msg(bfm_id);
+        $display("  msgid=%0d", msg_id);
         case (msg_id)
 ${bfm_import_calls}
         default: begin
@@ -212,6 +220,16 @@ ${bfm_import_calls}
     endtask
     export "DPI-C" task ${bfm_name}_process_msg;
     import "DPI-C" context function int ${bfm_name}_register(string inst_name);
+    
+    function automatic int ${bfm_name}_register_w(
+        string         iname,
+        string         clsname,
+        chandle        notify_cb,
+        chandle        notify_ud);
+        return pybfms_register(iname, clsname, notify_cb, notify_ud);
+    endfunction
+    export "DPI-C" function ${bfm_name}_register_w;
+        
 
 ${bfm_export_tasks}
 
@@ -238,19 +256,36 @@ int ${bfm_name}_process_msg() __attribute__((weak));
 
 // Stub definition to handle the case where a referenced
 // BFM type isn't instanced
-int ${bfm_name}_process_msg() { }
+int ${bfm_name}_process_msg() { return -1; }
 
 static void ${bfm_name}_notify_cb(void *user_data) {
+    fprintf(stdout, "--> ${bfm_name}_notify_cb ctxt=%p\\n", user_data);
     svSetScope(user_data);
     ${bfm_name}_process_msg();
+    fprintf(stdout, "<-- ${bfm_name}_notify_cb ctxt=%p\\n", user_data);
 }
 
+int ${bfm_name}_register_w(const char *, const char *, pybfms_notify_f, void *) __attribute__((weak));
+// Stub definition
+int ${bfm_name}_register_w(const char *iname, const char *cname, pybfms_notify_f f, void *ud) { return -1; }
+
 int ${bfm_name}_register(const char *inst_name) {
-    return pybfms_register(
+    void *ctxt = svGetScope();
+    int id;
+    
+    fprintf(stdout, "--> ${bfm_name}_register_w ctx=%p\\n", ctxt);
+    fflush(stdout);
+    id = ${bfm_name}_register_w(
         inst_name,
         \"${bfm_classname}\",
         &${bfm_name}_notify_cb,
-        svGetScope());
+        ctxt);
+    fprintf(stdout, "<-- ${bfm_name}_register_w ctx=%p\\n", ctxt);
+    fflush(stdout);
+        
+    fprintf(stdout, \"bfm_id=%d\\n\", id);
+    fflush(stdout);
+    return id;
 }
 """
 
@@ -281,8 +316,11 @@ def bfm_generate_sv(args):
             out_c.write("#endif\n")
             out_c.write("\n")
             out_c.write("#include \"svdpi.h\"\n")
+            out_c.write("#define _GNU_SOURCE\n")
+            out_c.write("#define __USE_GNU\n")
+            out_c.write("#include <dlfcn.h>\n")
             out_c.write("typedef void (*pybfms_notify_f)(void *);\n")
-            out_c.write("int pybfms_register(const char *, const char *, pybfms_notify_f, void *);\n")
+            out_c.write("\n");
 
             for t,info in inst.bfm_type_info_m.items():
                 if BfmType.Verilog not in info.hdl.keys():

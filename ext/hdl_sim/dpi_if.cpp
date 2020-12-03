@@ -7,7 +7,7 @@
 #define EXTERN_C extern "C"
 
 EXTERN_C int pybfms_claim_msg(uint32_t id);
-EXTERN_C void pybfms_end_msg(uint32_t bfm_id);
+EXTERN_C int pybfms_end_msg(uint32_t bfm_id);
 
 EXTERN_C uint32_t pybfms_register(
         const char                *inst_name,
@@ -104,10 +104,11 @@ EXTERN_C void pybfms_add_ui_param(uint32_t bfm_id, uint64_t pval) {
     }
 }
 
-EXTERN_C void pybfms_end_msg(uint32_t bfm_id) {
+EXTERN_C int pybfms_end_msg(uint32_t bfm_id) {
     Bfm *bfm = Bfm::get_bfms().at(bfm_id);
 
     bfm->send_inbound_msg();
+    return 0;
 }
 
 #ifdef UNDEFINED
