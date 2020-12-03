@@ -5,6 +5,7 @@
 #include "vpi_user.h"
 #include <stdio.h>
 #include <string>
+#include <stdlib.h>
 #ifndef _WIN32
 #include <dlfcn.h>
 #endif
@@ -36,6 +37,7 @@ static void *find_vpi_lib() {
 static bool prv_vpi_api_tryload = false;
 static bool prv_vpi_api_loaded = false;
 static vpi_api_s prv_vpi_api;
+static bool prv_debug = false;
 
 static vpi_api_func_s api_tab[] = {
 		{"vpi_get_value", (void **)&prv_vpi_api.vpi_get_value},
@@ -57,17 +59,27 @@ static bool load_vpi_api() {
 	// Only try to load the VPI API once
 	prv_vpi_api_tryload = true;
 
+	if (getenv("PYBFMS_VPI_DEBUG") &&
+			getenv("PYBFMS_VPI_DEBUG")[0] == 1) {
+		prv_debug = true;
+	}
+
 	void *vpi_lib = find_vpi_lib();
-	fprintf(stdout, "vpi_lib=%p\n", vpi_lib);
-	fflush(stdout);
+	if (prv_debug) {
+		fprintf(stdout, "vpi_lib=%p\n", vpi_lib);
+		fflush(stdout);
+	}
 	if (!vpi_lib) {
+		fprintf(stdout, "Error: failed to find VPI library\n");
 		return false;
 	}
 
 	for (uint32_t i=0; api_tab[i].name; i++) {
 		void *val = dlsym(vpi_lib, api_tab[i].name);
-		fprintf(stdout, "VPI: %s=%p\n", api_tab[i].name, val);
-		fflush(stdout);
+		if (prv_debug) {
+			fprintf(stdout, "VPI: %s=%p\n", api_tab[i].name, val);
+			fflush(stdout);
+		}
 		if (!val) {
 			fprintf(stdout, "Error: Failed to find symbol \"%s\" (%s)\n",
 					api_tab[i].name, dlerror());
@@ -392,12 +404,15 @@ static void register_bfm_tf(void) {
     s_vpi_systf_data tf_data;
 
     if (!load_vpi_api()) {
+    	fprintf(stdout, "Error: VPI API failed to load\n");
+	fflush(stdout);
     	return;
     }
 
     // pybfms_register
     tf_data.type = vpiSysFunc;
     tf_data.tfname = "$pybfms_register";
+    tf_data.sysfunctype = vpiIntFunc;
     tf_data.calltf = &pybfms_register_tf;
     tf_data.compiletf = 0;
     tf_data.sizetf = 0;
@@ -407,6 +422,7 @@ static void register_bfm_tf(void) {
     // pybfms_claim_msg
     tf_data.type = vpiSysFunc;
     tf_data.tfname = "$pybfms_claim_msg";
+    tf_data.sysfunctype = vpiIntFunc;
     tf_data.calltf = &pybfms_claim_msg_tf;
     tf_data.compiletf = 0;
     tf_data.sizetf = 0;
@@ -416,6 +432,7 @@ static void register_bfm_tf(void) {
     // pybfms_get_param_i32
     tf_data.type = vpiSysFunc;
     tf_data.tfname = "$pybfms_get_param_i32";
+    tf_data.sysfunctype = vpiIntFunc;
     tf_data.calltf = &pybfms_get_param_i32_tf;
     tf_data.compiletf = 0;
     tf_data.sizetf = 0;
@@ -425,6 +442,7 @@ static void register_bfm_tf(void) {
     // pybfms_get_param_ui32
     tf_data.type = vpiSysFunc;
     tf_data.tfname = "$pybfms_get_param_ui32";
+    tf_data.sysfunctype = vpiIntFunc;
     tf_data.calltf = &pybfms_get_param_ui32_tf;
     tf_data.compiletf = 0;
     tf_data.sizetf = 0;
@@ -438,6 +456,7 @@ static void register_bfm_tf(void) {
     // pybfms_begin_msg
     tf_data.type = vpiSysTask;
     tf_data.tfname = "$pybfms_begin_msg";
+    tf_data.sysfunctype = vpiSysTask;
     tf_data.calltf = &pybfms_begin_msg_tf;
     tf_data.compiletf = 0;
     tf_data.sizetf = 0;
@@ -447,6 +466,7 @@ static void register_bfm_tf(void) {
     // pybfms_add_param_ui
     tf_data.type = vpiSysTask;
     tf_data.tfname = "$pybfms_add_param_ui";
+    tf_data.sysfunctype = vpiSysTask;
     tf_data.calltf = &pybfms_add_param_ui_tf;
     tf_data.compiletf = 0;
     tf_data.sizetf = 0;
@@ -456,6 +476,7 @@ static void register_bfm_tf(void) {
     // pybfms_add_param_si
     tf_data.type = vpiSysTask;
     tf_data.tfname = "$pybfms_add_param_si";
+    tf_data.sysfunctype = vpiSysTask;
     tf_data.calltf = &pybfms_add_param_si_tf;
     tf_data.compiletf = 0;
     tf_data.sizetf = 0;
@@ -467,6 +488,7 @@ static void register_bfm_tf(void) {
     // pybfms_end_msg
     tf_data.type = vpiSysTask;
     tf_data.tfname = "$pybfms_end_msg";
+    tf_data.sysfunctype = vpiSysTask;
     tf_data.calltf = &pybfms_end_msg_tf;
     tf_data.compiletf = 0;
     tf_data.sizetf = 0;
