@@ -22,6 +22,11 @@ struct vpi_api_s {
 	vpiHandle (*vpi_register_systf)(p_vpi_systf_data);
 };
 
+typedef struct notify_data_s {
+    vpiHandle 	notify_ev;
+    int			value;
+} notify_data_t;
+
 // TODO: VPI API implementation
 struct vpi_api_func_s {
 	const char *name;
@@ -102,17 +107,20 @@ static bool load_vpi_api() {
  * that the BFM is waiting on.
  */
 static void pybfms_notify(void *notify_ev) {
+	notify_data_t *nd = (notify_data_t *)notify_ev;
     s_vpi_value val;
 
     if (!load_vpi_api()) {
     	return;
     }
 
+    fprintf(stdout, "pybfms_notify\n");
     val.format = vpiIntVal;
-    val.value.integer = 1;
+    val.value.integer = (nd->value)?0:1;
+    nd->value = (nd->value)?0:1;
 
     // Signal an event to cause the BFM to wake up
-    prv_vpi_api.vpi_put_value((vpiHandle)notify_ev, &val, 0, vpiNoDelay);
+    prv_vpi_api.vpi_put_value(nd->notify_ev, &val, 0, vpiNoDelay);
 }
 
 /**
@@ -135,6 +143,7 @@ static int pybfms_register_tf(char *user_data) {
     vpiHandle systf_h = prv_vpi_api.vpi_handle(vpiSysTfCall, 0);
     vpiHandle scope_h = prv_vpi_api.vpi_handle(vpiScope, systf_h);
     vpiHandle arg_it = prv_vpi_api.vpi_iterate(vpiArgument, systf_h);
+    notify_data_t *nd = 0;
     s_vpi_value val;
     vpiHandle arg;
     uint32_t id;
@@ -155,7 +164,10 @@ static int pybfms_register_tf(char *user_data) {
 
     prv_vpi_api.vpi_free_object(arg_it);
 
-    id = Bfm::add_bfm(new Bfm(inst_name, cls_name, &pybfms_notify, notify_ev));
+    nd = (notify_data_t *)malloc(sizeof(notify_data_t));
+    nd->notify_ev = notify_ev;
+    nd->value = 0;
+    id = Bfm::add_bfm(new Bfm(inst_name, cls_name, &pybfms_notify, nd));
 
     // Set return value
     val.format = vpiIntVal;

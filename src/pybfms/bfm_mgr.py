@@ -93,11 +93,20 @@ class BfmMgr():
 
     @staticmethod
     def get_bfms():
-        return BfmMgr.inst().bfm_l
+        inst = BfmMgr.inst()
+        
+        if not inst.m_initialized:
+            raise Exception("PyBFMS not initialized. Must call 'await pybfms.init()'")
+        
+        return inst.bfm_l
 
     @staticmethod
     def find_bfm(path_pattern):
         inst = BfmMgr.inst()
+        
+        if not inst.m_initialized:
+            raise Exception("PyBFMS not initialized. Must call 'await pybfms.init()'")
+        
         bfm = None
 
         path_pattern_re = re.compile(path_pattern)
