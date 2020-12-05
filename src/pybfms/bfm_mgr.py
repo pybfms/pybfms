@@ -169,13 +169,24 @@ class BfmMgr():
     async def init(backend=None, force=False):
         pybfms.init_backend(backend)
 
-        # Delay for a delta to allow BFMs to register
-        await pybfms.delta()
-        
         inst = BfmMgr.inst()
+
         if not inst.m_initialized or force:
+            # Delay for a delta to allow BFMs to register
+            last_count = 0
+            for i in range(100):
+                await pybfms.delta()
+
+                this_count = inst._get_count()
+                if last_count > 0 and this_count == last_count:
+                    # Found at least one BFM, and no more showed up
+                    break
+                last_count = this_count
+
+            if last_count == 0:
+                print("Warning: PyBFMs did not detect any BFMs registering")
+
             inst._set_recv_msg_callback(recv_msg_func_p)
-#            pybfms_core.bfm_set_call_method(BfmMgr.call)
             inst._load_bfms()
             inst.m_initialized = True
 

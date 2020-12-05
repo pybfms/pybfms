@@ -515,7 +515,7 @@ void (*vlog_startup_routines[])() = {
 
 
 // For non-VPI compliant applications that cannot find vlog_startup_routines symbol
-void vlog_startup_routines_bootstrap() {
+extern "C" void vlog_startup_routines_bootstrap() {
     for (int i = 0; vlog_startup_routines[i]; i++) {
     	void (*routine)() = vlog_startup_routines[i];
         routine();
