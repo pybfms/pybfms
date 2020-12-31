@@ -215,9 +215,7 @@ def process_template_sv(template, bfm_name, info):
 
     task automatic ${bfm_name}_process_msg();
         int msg_id;
-        $display("${bfm_name}_process_msg");
         msg_id = pybfms_claim_msg(bfm_id);
-        $display("  msgid=%0d", msg_id);
         case (msg_id)
 ${bfm_import_calls}
         default: begin
@@ -267,10 +265,8 @@ int ${bfm_name}_process_msg() __attribute__((weak));
 int ${bfm_name}_process_msg() { return -1; }
 
 static void ${bfm_name}_notify_cb(void *user_data) {
-    fprintf(stdout, "--> ${bfm_name}_notify_cb ctxt=%p\\n", user_data);
     svSetScope(user_data);
     ${bfm_name}_process_msg();
-    fprintf(stdout, "<-- ${bfm_name}_notify_cb ctxt=%p\\n", user_data);
 }
 
 int ${bfm_name}_register_w(const char *, const char *, pybfms_notify_f, void *) __attribute__((weak));
@@ -281,18 +277,12 @@ int ${bfm_name}_register(const char *inst_name) {
     void *ctxt = svGetScope();
     int id;
     
-    fprintf(stdout, "--> ${bfm_name}_register_w ctx=%p\\n", ctxt);
-    fflush(stdout);
     id = ${bfm_name}_register_w(
         inst_name,
         \"${bfm_classname}\",
         &${bfm_name}_notify_cb,
         ctxt);
-    fprintf(stdout, "<-- ${bfm_name}_register_w ctx=%p\\n", ctxt);
-    fflush(stdout);
         
-    fprintf(stdout, \"bfm_id=%d\\n\", id);
-    fflush(stdout);
     return id;
 }
 """
