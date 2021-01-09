@@ -8,6 +8,8 @@ import os
 import sys
 from pybfms.bfmgen import bfm_generate
 from pybfms import get_libpybfms
+from pybfms.project import init_project
+from pybfms.init_bfm import init_bfm
 
 def lib(args):
     libpath = get_libpybfms()
@@ -39,6 +41,26 @@ def get_parser():
         help="Specifies the desired output language")
     generate_cmd.add_argument("-o", default=None,
         help="Output filename")
+    
+    init_bfm_cmd = subparser.add_parser("init_bfm",
+        help="Create the outline of a BFM")
+    init_bfm_cmd.add_argument("classname",
+        help="Specifies the class name of the BFM")
+    init_bfm_cmd.add_argument("-f","--force", action='store_true',
+        help="Force overwrite of existing files")
+    init_bfm_cmd.add_argument("-package",
+        help="Specifies the package name")
+    init_bfm_cmd.set_defaults(func=init_bfm)
+    
+    init_project_cmd = subparser.add_parser("init_project",
+        help="Initialize a PyBFMS project with setup.py, etc")
+    init_project_cmd.add_argument("name",
+        help="Specifies the name of the project")
+    init_project_cmd.add_argument("package",
+        help="Specifies the name of the Python package")
+    init_project_cmd.add_argument("-f","--force", action='store_true',
+        help="Force overwrite of existing files")
+    init_project_cmd.set_defaults(func=init_project)
     
     return parser
    
