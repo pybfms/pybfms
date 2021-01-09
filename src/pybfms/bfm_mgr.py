@@ -175,7 +175,8 @@ class BfmMgr():
             # Delay for a delta to allow BFMs to register
             last_count = 0
             for i in range(100):
-                await pybfms.delta()
+                for j in range(2):
+                    await pybfms.delta()
 
                 this_count = inst._get_count()
                 if last_count > 0 and this_count == last_count:
@@ -194,6 +195,11 @@ class BfmMgr():
                 if bfm.bfm_info.type_info.has_init:
                     # Send the initialization message
                     inst.send_msg(bfm.bfm_info.id, BuiltinMsgId.Init, [], [])
+                    
+                    # Give the BFM a chance to respond
+                    for i in range(2):
+                        await pybfms.delta()
+                    
             
     @staticmethod
     def _recv_msg(bfm_id, msg):

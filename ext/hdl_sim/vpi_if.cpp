@@ -114,7 +114,6 @@ static void pybfms_notify(void *notify_ev) {
     	return;
     }
 
-    fprintf(stdout, "pybfms_notify\n");
     val.format = vpiIntVal;
     val.value.integer = (nd->value)?0:1;
     nd->value = (nd->value)?0:1;
