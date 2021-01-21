@@ -48,7 +48,6 @@ def process_template_vl(template, info):
     for i,exp in enumerate(info.export_info):
         bfm_export_tasks += "    task " + exp.T.__name__
 
-        print("Creating export tasks")
         if len(exp.signature) > 0:
             bfm_export_tasks += "("
             for j,p in enumerate(exp.signature):
@@ -67,6 +66,13 @@ def process_template_vl(template, info):
                 bfm_export_tasks += "        $pybfms_add_param_ui(bfm_id, " + p.pname + ");\n"
 
         bfm_export_tasks += "        $pybfms_end_msg(bfm_id);\n"
+        bfm_export_tasks += "        // Check to see if a message came in response\n"
+        bfm_export_tasks += "        bfm_msg_id = $pybfms_claim_msg(bfm_id);\n"
+        bfm_export_tasks += "        if (bfm_msg_id != -1) begin\n"
+        bfm_export_tasks += "            __dispatch_bfm_msg(bfm_msg_id);\n"
+        bfm_export_tasks += "        end\n"
+        bfm_export_tasks += "\n"
+        
         bfm_export_tasks += "    end\n"
         bfm_export_tasks += "    endtask\n"
 
@@ -87,19 +93,28 @@ def process_template_vl(template, info):
 
 ${bfm_export_tasks}
 
+    task __dispatch_bfm_msg(input reg signed[31:0] bfm_msg_id);
+    begin
+          case (bfm_msg_id)
+${bfm_import_calls}
+              -1: begin
+              $finish;
+              end
+          endcase
+    end
+    endtask
+
     initial begin
       bfm_id = $pybfms_register("${bfm_classname}", bfm_ev);
       
       while (1) begin
           bfm_msg_id = $pybfms_claim_msg(bfm_id);
 
-          case (bfm_msg_id)
-${bfm_import_calls}
-              -1: begin
-                  @(bfm_ev);
-              end
-          endcase
-
+            if (bfm_msg_id != -1) begin
+                __dispatch_bfm_msg(bfm_msg_id);
+            end else begin
+                @(bfm_ev);
+            end
       end
     end
     """
