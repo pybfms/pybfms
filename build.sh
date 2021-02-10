@@ -32,7 +32,7 @@ cp -r /pybfms .
 cd ${BUILD_DIR}/pybfms
 
 # for py in python27 rh-python35 rh-python36; do
-for py in cp35-cp35m cp36-cp36m cp37-cp37m cp38-cp38 cp39-cp39; do
+for py in cp36-cp36m cp37-cp37m cp38-cp38 cp39-cp39; do
   echo "Python: ${py}"
   ls
   python=/opt/python/${py}/bin/python
