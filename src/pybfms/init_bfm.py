@@ -67,7 +67,7 @@ class %s():
         pass
         
     @pybfms.export_task()
-    def _set_praameters(self):
+    def _set_parameters(self):
         pass
         
     @pybfms.export_task()
