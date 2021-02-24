@@ -18,6 +18,17 @@ class Backend():
     def lock(self):
         raise Exception("Backend.lock() unimplemented")
     
+    async def inbound_task_call(self):
+        """Called when a request is received to call an exported task"""
+        raise Exception("Backend.inbound_task_call() unimplemented")
+    
+    def fork(self, c):
+        raise Exception("Backend.fork() unimplemented")
+    
+    async def join(self, t):
+        raise Exception("Backend.join() unimplemented")
+        
+    
 class BackendCocotb(Backend):
     
     def event(self):
@@ -35,5 +46,15 @@ class BackendCocotb(Backend):
         from cocotb.triggers import Lock
         return Lock()
     
-    
+    async def inbound_task_call(self):
+        """Called when a request is received to call an exported task"""
+        from cocotb.triggers import Timer
+        await Timer(0, "ps")
         
+    def fork(self, c):
+        import cocotb
+        return cocotb.fork(c)
+    
+    def join(self, t):
+        from cocotb.triggers import Join
+        return Join(t)

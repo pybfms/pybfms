@@ -37,8 +37,8 @@ def get_libpybfms():
 async def init(backend=None, force=False):
     await BfmMgr.init()
     
-def find_bfm(pattern):
-    return BfmMgr.find_bfm(pattern)
+def find_bfm(pattern, type=None):
+    return BfmMgr.find_bfm(pattern, type)
 
 def event():
     """
@@ -57,6 +57,9 @@ def delta():
 
 def lock():
     return _backend.lock()
+
+def backend():
+    return _backend
     
     
     

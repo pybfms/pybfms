@@ -101,7 +101,7 @@ class BfmMgr():
         return inst.bfm_l
 
     @staticmethod
-    def find_bfm(path_pattern):
+    def find_bfm(path_pattern, type=None):
         inst = BfmMgr.inst()
         
         if not inst.m_initialized:
@@ -117,8 +117,15 @@ class BfmMgr():
             for b in inst.bfm_l
             if path_pattern_re.match(b.bfm_info.inst_name)
         )
+       
+        if type is None:
+            return next(matches, None)
+        else:
+            for bfm in matches:
+                if isinstance(bfm, type):
+                    return bfm
+        return None
 
-        return next(matches, None)
 
     @staticmethod
     def inst():
@@ -220,6 +227,8 @@ class BfmMgr():
             else:
                 print("Error: unsupported parameter type " + str(pt))
 
+        # Notify the backend so it can do any pre-execution housekeeping
+#        pybfms.backend().inbound_task_call()
         inst.call(bfm_id, msg_id, params)
 
     def call(self, bfm_id, method_id, params):
