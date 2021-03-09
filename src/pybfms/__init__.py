@@ -7,6 +7,7 @@ import sys
 
 from enum import Enum, auto
 from pybfms.backend import BackendCocotb
+from typing import List
 
 _backend = None
 
@@ -39,6 +40,9 @@ async def init(backend=None, force=False):
     
 def find_bfm(pattern, type=None):
     return BfmMgr.find_bfm(pattern, type)
+
+def find_bfms(pattern, type=None) -> List:
+    return BfmMgr.find_bfms(pattern, type)
 
 def event():
     """
