@@ -126,6 +126,32 @@ class BfmMgr():
                     return bfm
         return None
 
+    @staticmethod
+    def find_bfms(path_pattern, type=None):
+        inst = BfmMgr.inst()
+        
+        if not inst.m_initialized:
+            raise Exception("PyBFMS not initialized. Must call 'await pybfms.init()'")
+        
+        path_pattern_re = re.compile(path_pattern)
+
+        # Find the BFM instance that matches the specified pattern
+        matches = (
+            b
+            for b in inst.bfm_l
+            if path_pattern_re.match(b.bfm_info.inst_name)
+        )
+       
+        if type is None:
+            return list(matches)
+            return next(matches, None)
+        else:
+            bfms = []
+            for bfm in matches:
+                if isinstance(bfm, type):
+                    bfms.append(bfm)
+            return bfms
+        return None
 
     @staticmethod
     def inst():

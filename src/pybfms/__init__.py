@@ -8,7 +8,7 @@ from typing import List
 from pybfms.backend import BackendCocotb
 from pybfms.decorators import *
 from pybfms.types import *
-
+from typing import List
 
 _backend = None
 
@@ -44,6 +44,9 @@ def find_bfm(pattern, type=None):
 
 def get_bfms() -> List:
     return BfmMgr.get_bfms()
+
+def find_bfms(pattern, type=None) -> List:
+    return BfmMgr.find_bfms(pattern, type)
 
 def event():
     """
