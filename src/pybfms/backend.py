@@ -49,7 +49,7 @@ class BackendCocotb(Backend):
     async def inbound_task_call(self):
         """Called when a request is received to call an exported task"""
         from cocotb.triggers import Timer
-        await Timer(0, "ps")
+        await Timer(0, units="ps")
         
     def fork(self, c):
         import cocotb
