@@ -1,26 +1,24 @@
 
 from enum import Enum, auto
 import os
-import os
 import sys
 from typing import List
 
-from pybfms.backend import BackendCocotb
+from pybfms.backend import BackendCocotb, Backend
 from pybfms.decorators import *
 from pybfms.types import *
-from typing import List
 
-_backend = None
+from .objection import objection
+
 
 def init_backend(backend=None):
-    global _backend
     
     if backend is None:
         # Only set the backend if if hasn't already been set
-        if _backend is None:
-            _backend = BackendCocotb()
+        if Backend.inst() is None:
+            Backend.set_inst(BackendCocotb())
     else:
-        _backend = backend
+        Backend.set_inst(backend)
 
     
 def get_libpybfms():
@@ -52,22 +50,26 @@ def event():
     """
     Returns an event object for synchronization
     """
-    return _backend.event()
+    return Backend.inst().event()
 
 def delay(time_ps, units=None):
     """
     Returns an awaitable object to delay for a period of simulation time
     """
-    return _backend.delay(time_ps, units)
+    return Backend.inst().delay(time_ps, units)
 
 def delta():
-    return _backend.delta()
+    return Backend.inst().delta()
+
+def fork(coro):
+    """Forks a new co-routine"""
+    return Backend.inst().fork(coro)
 
 def lock():
-    return _backend.lock()
+    return Backend.inst().lock()
 
 def backend():
-    return _backend
+    return Backend.inst()
     
     
     

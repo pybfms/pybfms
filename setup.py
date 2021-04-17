@@ -1,5 +1,6 @@
 
 import os
+import sysconfig
 from setuptools import setup
 from distutils.extension import Extension
 from distutils.command.build_clib import build_clib
@@ -7,6 +8,24 @@ from distutils.ccompiler import new_compiler
 from distutils.spawn import find_executable
 from setuptools.command.build_ext import build_ext as _build_ext
 from distutils.file_util import copy_file
+
+_DEBUG = False
+# Generally I write code so that if DEBUG is defined as 0 then all optimisations
+# are off and asserts are enabled. Typically run times of these builds are x2 to x10
+# release builds.
+# If DEBUG > 0 then extra code paths are introduced such as checking the integrity of
+# internal data structures. In this case the performance is by no means comparable
+# with release builds.
+_DEBUG_LEVEL = 0
+
+# Common flags for both release and debug builds.
+extra_compile_args = sysconfig.get_config_var('CFLAGS').split()
+extra_compile_args = []
+extra_compile_args += ["-std=c++11", "-Wall", "-Wextra"]
+if _DEBUG:
+    extra_compile_args += ["-g", "-O0", "-DDEBUG=%s" % _DEBUG_LEVEL, "-UNDEBUG"]
+else:
+    extra_compile_args += ["-DNDEBUG", "-O3"]
 
 def find_source(bases):
     ret = []
@@ -122,6 +141,7 @@ class build_ext(_build_ext):
                     ]
                 )
 
+print("extra_compile_args=" + str(extra_compile_args))
 
 setup(
   name = "pybfms",
@@ -144,6 +164,7 @@ setup(
   cmdclass={'build_ext': build_ext},
   ext_modules=[
         Extension("libpybfms",
+            extra_compile_args=extra_compile_args,
             include_dirs=[
                 os.path.join(pybfms_root, 'ext/common'), 
                 os.path.join(pybfms_root, 'ext/hdl_sim')],

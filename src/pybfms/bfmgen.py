@@ -83,7 +83,7 @@ def process_template_vl(template, info):
         )
 
     pybfms_api_impl = """
-    reg signed[31:0]      bfm_id;
+    reg signed[31:0]      bfm_id = -1;
 `ifdef IVERILOG
     event                 bfm_ev;
 `else
@@ -193,6 +193,10 @@ def process_template_sv(template, bfm_name, info):
                 bfm_export_tasks += ", "
         bfm_export_tasks += ");\n"
         bfm_export_tasks += "    begin\n"
+        bfm_export_tasks += "        if (bfm_id < 0) begin\n"
+        bfm_export_tasks += "            $display(\"Error: %m not registered\");\n"
+        bfm_export_tasks += "            $finish();\n"
+        bfm_export_tasks += "        end\n";
         bfm_export_tasks += "        pybfms_begin_msg(bfm_id, " + str(i) + ");\n"
         for p in exp.signature:
             if p.ptype.s:
@@ -241,7 +245,8 @@ ${bfm_import_calls}
     endtask
     export "DPI-C" task ${bfm_name}_process_msg;
     import "DPI-C" context function int ${bfm_name}_register(string inst_name);
-    
+   
+    /*
     function automatic int ${bfm_name}_register_w(
         string         iname,
         string         clsname,
@@ -250,12 +255,14 @@ ${bfm_import_calls}
         return pybfms_register(iname, clsname, notify_cb, notify_ud);
     endfunction
     export "DPI-C" function ${bfm_name}_register_w;
+     */
         
 
 ${bfm_export_tasks}
 
     initial begin
       bfm_id = ${bfm_name}_register($sformatf("%m"));
+      $display("PyBfms: register ${bfm_name} %m (bfm_id=%0d)", bfm_id);
     end
     """
 
@@ -273,16 +280,25 @@ def generate_dpi_c(bfm_name, info):
         }
 
     template = """
-int ${bfm_name}_process_msg() __attribute__((weak));
+    extern "C" int ${bfm_name}_process_msg() __attribute__((weak));
 
 // Stub definition to handle the case where a referenced
 // BFM type isn't instanced
-int ${bfm_name}_process_msg() { return -1; }
+/*
+int ${bfm_name}_process_msg() { 
+    fprintf(stdout, "${bfm_name}_process_msg(weak)\\n");
+    return -1; }
+ */
 
 static void ${bfm_name}_notify_cb(void *user_data) {
     svSetScope(user_data);
-    ${bfm_name}_process_msg();
+    if (${bfm_name}_process_msg) {
+        ${bfm_name}_process_msg();
+    } else {
+       fprintf(stdout, "No process_msg\\n");
+    }
 }
+
 
 int ${bfm_name}_register_w(const char *, const char *, pybfms_notify_f, void *) __attribute__((weak));
 // Stub definition
@@ -292,7 +308,7 @@ int ${bfm_name}_register(const char *inst_name) {
     void *ctxt = svGetScope();
     int id;
     
-    id = ${bfm_name}_register_w(
+    id = pybfms_register(
         inst_name,
         \"${bfm_classname}\",
         &${bfm_name}_notify_cb,
@@ -334,6 +350,7 @@ def bfm_generate_sv(args):
             out_c.write("#define __USE_GNU\n")
             out_c.write("#include <dlfcn.h>\n")
             out_c.write("typedef void (*pybfms_notify_f)(void *);\n")
+            out_c.write("int pybfms_register(const char *, const char *,pybfms_notify_f, void *);\n")
             out_c.write("\n");
 
             for t,info in inst.bfm_type_info_m.items():

@@ -6,6 +6,8 @@ Created on Feb 22, 2020
 
 class Backend():
     
+    _inst = None
+    
     def event(self):
         raise Exception("Backend.event() unimplemented")
     
@@ -14,7 +16,7 @@ class Backend():
     
     def delta(self):
         raise Exception("Backend.delta() unimplemented")
-        
+    
     def lock(self):
         raise Exception("Backend.lock() unimplemented")
     
@@ -27,6 +29,14 @@ class Backend():
     
     async def join(self, t):
         raise Exception("Backend.join() unimplemented")
+    
+    @classmethod
+    def inst(cls):
+        return cls._inst
+    
+    @classmethod
+    def set_inst(cls, inst):
+        cls._inst = inst
         
     
 class BackendCocotb(Backend):
