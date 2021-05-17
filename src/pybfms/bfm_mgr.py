@@ -12,7 +12,7 @@ from ctypes import cdll, c_uint, CFUNCTYPE, c_char_p, c_void_p, c_ulonglong,\
 from pybfms.bfm_type_info import BfmTypeInfo
 from pybfms.bfm_method_info import MsgParamType
 from enum import IntEnum
-from pybfms.backend import BackendCocotb
+from pybfms.backend import BackendCocotb, Backend
 import pybfms
 
 class BuiltinMsgId(IntEnum):
@@ -239,6 +239,7 @@ class BfmMgr():
         inst = BfmMgr.inst()
         msg_id = inst._msg_id(msg)
         
+        
         params = []
         while True:
             p = inst._msg_get_param(msg)
@@ -253,12 +254,16 @@ class BfmMgr():
             else:
                 print("Error: unsupported parameter type " + str(pt))
 
-        # Notify the backend so it can do any pre-execution housekeeping
-#        pybfms.backend().inbound_task_call()
-        inst.call(bfm_id, msg_id, params)
+        # Run the notification call within a coroutine so that
+        # any failures end the run
+        Backend.inst().fork(inst.call(bfm_id, msg_id, params))
 
-    def call(self, bfm_id, method_id, params):
+    async def call(self, bfm_id, method_id, params):
         bfm = self.bfm_l[bfm_id]
+
+        # Wait for a delta to allow the backend (cocotb) to
+        # synchronize with simulation time
+        await Backend.inst().delta()
 
         if not hasattr(bfm, "bfm_info"):
             raise AttributeError("BFM object does not contain 'bfm_info' field")

@@ -50,7 +50,7 @@ class BackendCocotb(Backend):
         return Timer(time_ps, units)
     
     def delta(self):
-        return self.delay(0)
+        return self.delay(0, 'ps')
         
     def lock(self):
         from cocotb.triggers import Lock
