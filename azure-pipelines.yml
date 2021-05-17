@@ -11,7 +11,7 @@ jobs:
     displayName: 'Install wheel+twine'
 
   - script: |
-      docker pull quay.io/pypa/manylinux1_x86_64
+      docker pull quay.io/pypa/manylinux2010_x86_64
       docker build -t pybfms .
     displayName: 'Setup Docker Image'
     
