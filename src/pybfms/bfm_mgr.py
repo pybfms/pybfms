@@ -263,7 +263,7 @@ class BfmMgr():
 
         # Wait for a delta to allow the backend (cocotb) to
         # synchronize with simulation time
-        await Backend.inst().delta()
+#        await Backend.inst().delta()
 
         if not hasattr(bfm, "bfm_info"):
             raise AttributeError("BFM object does not contain 'bfm_info' field")
