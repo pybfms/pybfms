@@ -1,6 +1,5 @@
 #****************************************************************************
-#* packages.mf for bfm-tools
+#* packages.mf for pybfms
 #****************************************************************************
 
-simscripts@http://github.com/mballance/simscripts.git
 
