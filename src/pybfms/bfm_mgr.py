@@ -232,6 +232,11 @@ class BfmMgr():
                     # Give the BFM a chance to respond
                     for i in range(2):
                         await pybfms.delta()
+
+            # Call the init method if the user has provided one
+            for bfm in inst.bfm_l:            
+                if hasattr(bfm, "bfm_init"):
+                    bfm.bfm_init()
                     
             
     @staticmethod
