@@ -5,6 +5,7 @@
 #include "vpi_user.h"
 #include <stdio.h>
 #include <string>
+#include <string.h>
 #include <stdlib.h>
 #ifndef _WIN32
 #include <dlfcn.h>
@@ -172,6 +173,7 @@ static int pybfms_register_tf(char *user_data) {
     val.format = vpiIntVal;
     val.value.integer = (int32_t)id;
     prv_vpi_api.vpi_put_value(systf_h, &val, 0, vpiNoDelay);
+    prv_vpi_api.vpi_free_object(systf_h);
 
     return 0;
 }
@@ -196,14 +198,16 @@ static int pybfms_claim_msg_tf(char *user_data) {
     prv_vpi_api.vpi_get_value(arg, &val);
     bfm_id = (uint32_t)val.value.integer;
 
-    prv_vpi_api.vpi_free_object(arg_it);
-
     msg_id = Bfm::get_bfms().at(bfm_id)->claim_msg();
 
     // Set return value
     val.format = vpiIntVal;
     val.value.integer = msg_id;
     prv_vpi_api.vpi_put_value(systf_h, &val, 0, vpiNoDelay);
+
+    prv_vpi_api.vpi_free_object(arg);
+    prv_vpi_api.vpi_free_object(arg_it);
+    prv_vpi_api.vpi_free_object(systf_h);
 
     return 0;
 }
@@ -228,7 +232,6 @@ static int pybfms_get_param_i32_tf(char *user_data) {
     prv_vpi_api.vpi_get_value(arg, &val);
     bfm_id = (uint32_t)val.value.integer;
 
-    prv_vpi_api.vpi_free_object(arg_it);
 
     BfmMsg *msg = Bfm::get_bfms().at(bfm_id)->active_msg();
     if (msg) {
@@ -241,6 +244,10 @@ static int pybfms_get_param_i32_tf(char *user_data) {
     val.format = vpiIntVal;
     val.value.integer = (int32_t)pval;
     prv_vpi_api.vpi_put_value(systf_h, &val, 0, vpiNoDelay);
+
+    prv_vpi_api.vpi_free_object(arg);
+    prv_vpi_api.vpi_free_object(arg_it);
+    prv_vpi_api.vpi_free_object(systf_h);
 
     return 0;
 }
@@ -265,8 +272,6 @@ static int pybfms_get_param_ui32_tf(char *user_data) {
     prv_vpi_api.vpi_get_value(arg, &val);
     bfm_id = (uint32_t)val.value.integer;
 
-    prv_vpi_api.vpi_free_object(arg_it);
-
     BfmMsg *msg = Bfm::get_bfms().at(bfm_id)->active_msg();
     if (msg) {
     	pval = msg->get_param_ui();
@@ -279,6 +284,10 @@ static int pybfms_get_param_ui32_tf(char *user_data) {
     // TODO: should really use reg?
     val.value.integer = (int32_t)pval;
     prv_vpi_api.vpi_put_value(systf_h, &val, 0, vpiNoDelay);
+
+    prv_vpi_api.vpi_free_object(arg);
+    prv_vpi_api.vpi_free_object(arg_it);
+    prv_vpi_api.vpi_free_object(systf_h);
 
     return 0;
 }
@@ -301,6 +310,7 @@ static int pybfms_begin_msg_tf(char *user_data) {
     val.format = vpiIntVal;
     prv_vpi_api.vpi_get_value(arg, &val);
     bfm_id = (uint32_t)val.value.integer;
+    prv_vpi_api.vpi_free_object(arg);
 
     // Get the msg ID
     arg = prv_vpi_api.vpi_scan(arg_it);
@@ -308,7 +318,9 @@ static int pybfms_begin_msg_tf(char *user_data) {
     prv_vpi_api.vpi_get_value(arg, &val);
     msg_id = (uint32_t)val.value.integer;
 
+    prv_vpi_api.vpi_free_object(arg);
     prv_vpi_api.vpi_free_object(arg_it);
+    prv_vpi_api.vpi_free_object(systf_h);
 
     Bfm::get_bfms().at(bfm_id)->begin_inbound_msg(msg_id);
 
@@ -319,6 +331,7 @@ static int pybfms_add_param_si_tf(char *user_data) {
     if (!load_vpi_api()) {
     	return 1;
     }
+
 
     vpiHandle systf_h = prv_vpi_api.vpi_handle(vpiSysTfCall, 0);
     vpiHandle arg_it = prv_vpi_api.vpi_iterate(vpiArgument, systf_h);
@@ -341,7 +354,9 @@ static int pybfms_add_param_si_tf(char *user_data) {
     prv_vpi_api.vpi_get_value(arg, &val);
     pval = (uint64_t)val.value.integer;
 
+    prv_vpi_api.vpi_free_object(arg);
     prv_vpi_api.vpi_free_object(arg_it);
+    prv_vpi_api.vpi_free_object(systf_h);
 
     BfmMsg *msg = Bfm::get_bfms().at(bfm_id)->active_inbound_msg();
     msg->add_param_si(pval);
@@ -353,6 +368,7 @@ static int pybfms_add_param_ui_tf(char *user_data) {
     if (!load_vpi_api()) {
     	return 1;
     }
+
 
     vpiHandle systf_h = prv_vpi_api.vpi_handle(vpiSysTfCall, 0);
     vpiHandle arg_it = prv_vpi_api.vpi_iterate(vpiArgument, systf_h);
@@ -375,7 +391,9 @@ static int pybfms_add_param_ui_tf(char *user_data) {
     prv_vpi_api.vpi_get_value(arg, &val);
     pval = (uint32_t)val.value.integer;
 
+    prv_vpi_api.vpi_free_object(arg);
     prv_vpi_api.vpi_free_object(arg_it);
+    prv_vpi_api.vpi_free_object(systf_h);
 
     BfmMsg *msg = Bfm::get_bfms().at(bfm_id)->active_inbound_msg();
     msg->add_param_ui(pval);
@@ -402,7 +420,9 @@ static int pybfms_end_msg_tf(char *user_data) {
     prv_vpi_api.vpi_get_value(arg, &val);
     bfm_id = (uint32_t)val.value.integer;
 
+    prv_vpi_api.vpi_free_object(arg);
     prv_vpi_api.vpi_free_object(arg_it);
+    prv_vpi_api.vpi_free_object(systf_h);
 
     Bfm *bfm = Bfm::get_bfms().at(bfm_id);
     bfm->send_inbound_msg();
