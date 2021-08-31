@@ -1,0 +1,12 @@
+package:
+    name: pybfms
+    version: 0.0.1
+    deps:
+        - name: cocotb
+          type: python
+          src: pypi
+
+    dev-deps:
+        - name: cocotb
+          type: python
+          src: pypi
