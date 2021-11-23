@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include "vpi_user.h"
+#include <alloca.h>
 #include <stdio.h>
 #include <string>
 #include <string.h>
@@ -130,6 +131,7 @@ static void pybfms_notify(void *notify_ev) {
  * Registers a new BFM with the system
  */
 static int pybfms_register_tf(char *user_data) {
+    char tmp[128];
     if (!load_vpi_api()) {
     	return 1;
     }
@@ -138,7 +140,6 @@ static int pybfms_register_tf(char *user_data) {
     // - cls_name  -- passed in
     // - notify_ev -- passed in
     // - inst_name -- from call scope
-    std::string inst_name, cls_name;
     vpiHandle notify_ev = 0;
     vpiHandle systf_h = prv_vpi_api.vpi_handle(vpiSysTfCall, 0);
     vpiHandle scope_h = prv_vpi_api.vpi_handle(vpiScope, systf_h);
@@ -151,13 +152,17 @@ static int pybfms_register_tf(char *user_data) {
     (void)user_data;
 
     // Get the instance name from the context
-    inst_name = prv_vpi_api.vpi_get_str(vpiFullName, scope_h);
+
 
     // Get the Python class name
     arg = prv_vpi_api.vpi_scan(arg_it);
     val.format = vpiStringVal;
     prv_vpi_api.vpi_get_value(arg, &val);
-    cls_name = val.value.str;
+    char *cls_name_s = (char *)alloca(strlen(val.value.str)+1);
+    strcpy(cls_name_s, val.value.str);
+
+    char *inst_name_s = (char *)alloca(strlen(prv_vpi_api.vpi_get_str(vpiFullName, scope_h))+1);
+    strcpy(inst_name_s, prv_vpi_api.vpi_get_str(vpiFullName, scope_h));
 
     // Get the handle to the notify event
     notify_ev = prv_vpi_api.vpi_scan(arg_it);
@@ -167,7 +172,7 @@ static int pybfms_register_tf(char *user_data) {
     nd = (notify_data_t *)malloc(sizeof(notify_data_t));
     nd->notify_ev = notify_ev;
     nd->value = 0;
-    id = Bfm::add_bfm(new Bfm(inst_name, cls_name, &pybfms_notify, nd));
+    id = Bfm::add_bfm(new Bfm(inst_name_s, cls_name_s, &pybfms_notify, nd));
 
     // Set return value
     val.format = vpiIntVal;
