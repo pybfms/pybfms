@@ -1,12 +1,23 @@
 package:
     name: pybfms
-    version: 0.0.1
-    deps:
-        - name: cocotb
-          type: python
-          src: pypi
 
-    dev-deps:
-        - name: cocotb
-          type: python
-          src: pypi
+    dep-sets:
+    - name: default
+      deps:
+      - name: cocotb
+        type: python
+        src: pypi
+
+    - name: default-dev
+      deps:
+      - name: cocotb
+        type: python
+        src: pypi
+
+    paths:
+      export:
+        lib-dirs:
+          - verilog/rtl
+      project:
+        lib-dirs:
+          - verilog/rtl
